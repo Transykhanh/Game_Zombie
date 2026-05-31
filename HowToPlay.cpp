@@ -3,12 +3,14 @@
 #include <graphics.h>
 
 static void drawKeyBox(int left, int top, char text[]) {
+    // Ve phim dieu khien bang hinh chu nhat to mau va chu outtextxy.
     drawFilledRect(left, top, left + 58, top + 34, LIGHTGRAY, DARKGRAY);
     setcolor(WHITE);
     outtextxy(left + 18, top + 12, text);
 }
 
 static void drawMiniZombie(int x, int y) {
+    // Ve zombie minh hoa nho bang hinh tron Midpoint va duong Bresenham.
     drawFilledCircle(x, y, 18, GREEN, LIGHTGREEN);
     drawFilledCircle(x - 7, y - 4, 3, BLACK, RED);
     drawFilledCircle(x + 7, y - 4, 3, BLACK, RED);
@@ -18,6 +20,7 @@ static void drawMiniZombie(int x, int y) {
 }
 
 static void drawPanel(int left, int top, int right, int bottom) {
+    // Ve khung bang huong dan bang hinh chu nhat va vien Bresenham.
     drawFilledRect(left, top, right, bottom, LIGHTGRAY, BLACK);
     drawLineBresenham(left + 8, top + 8, right - 8, top + 8, LIGHTGREEN);
     drawLineBresenham(left + 8, bottom - 8, right - 8, bottom - 8, LIGHTGREEN);
@@ -26,6 +29,7 @@ static void drawPanel(int left, int top, int right, int bottom) {
 }
 
 static void drawKochCloud(int x, int y, int length, int color) {
+    // Ve dam may trang tri bang fractal Koch K.
     setAlgorithmColor(color);
     setFractalStart(x, y);
     K(3, (float)length, 0);
@@ -36,6 +40,7 @@ static void drawKochCloud(int x, int y, int length, int color) {
 }
 
 void drawHowToPlayScreen() {
+    // Ve man hinh huong dan: nen, vat trang tri, cac phim dieu khien va chu huong dan.
     setbkcolor(BLACK);
     cleardevice();
 

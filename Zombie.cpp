@@ -42,11 +42,13 @@ static void initRandomStars()
 
 static void eraseStar(int x, int y)
 {
+    // Xoa sao cu bang hinh tron den de tao hieu ung lap lanh.
     drawFilledCircle(x, y, 5, BLACK, BLACK);
 }
 
 static void drawStarShape(int x, int y, int size, int brightness)
 {
+    // Ve sao nen troi: cham tron Midpoint va tia sang bang Bresenham.
     int color = DARKGRAY;
 
     if(brightness == 1) color = LIGHTGRAY;
@@ -85,6 +87,7 @@ void drawTwinklingStars()
 }
 
 static void drawGround() {
+    // Ve mat dat: nen chu nhat to mau, vet nut dung duong thang Bresenham.
     drawFilledRect(26, 445, 774, 495, LIGHTGRAY, DARKGRAY);
 
     drawLineBresenham(45, 468, 210, 468, LIGHTGRAY);
@@ -106,6 +109,7 @@ static void drawGround() {
 }
 
 static void drawBrokenBuilding(int left, int bottom, int width, int height, int color) {
+    // Ve toa nha do nat: than nha bang hinh chu nhat, mai vo va cua so bang Bresenham/hinh chu nhat.
     int right = left + width;
     int top = bottom - height;
 
@@ -129,6 +133,7 @@ static void drawBrokenBuilding(int left, int bottom, int width, int height, int 
 }
 
 static void drawFence(int left, int y, int count) {
+    // Ve hang rao go: cot la hinh chu nhat, dau nhon va thanh ngang bang Bresenham.
     for(int i = 0; i < count; i++) {
         int x = left + i * 28;
         drawFilledRect(x, y - 42, x + 8, y, BROWN, BROWN);
@@ -141,6 +146,7 @@ static void drawFence(int left, int y, int count) {
 }
 
 static void drawWoodCrate(int left, int bottom) {
+    // Ve thung go: hinh chu nhat to mau va cac duong cheo Bresenham.
     drawFilledRect(left, bottom - 34, left + 42, bottom, BROWN, BROWN);
     drawLineBresenham(left, bottom - 34, left + 42, bottom, BLACK);
     drawLineBresenham(left + 42, bottom - 34, left, bottom, BLACK);
@@ -148,6 +154,7 @@ static void drawWoodCrate(int left, int bottom) {
 }
 
 static void drawBrokenCar(int x, int y) {
+    // Ve xe hong: than/mai xe bang da giac to mau, banh xe bang hinh tron Midpoint.
     int bodyX[] = {x, x + 28, x + 118, x + 148, x + 138, x + 12};
     int bodyY[] = {y, y - 22, y - 22, y, y + 22, y + 22};
     drawFilledPolygon(bodyX, bodyY, 6, x + 70, y + 5, LIGHTGRAY, DARKGRAY);
@@ -163,6 +170,7 @@ static void drawBrokenCar(int x, int y) {
 }
 
 static void drawCurvedLeaf(int baseX, int baseY, int tipX, int tipY, int color) {
+    // Ve mot la cong bang fractal Dragon D1, them gan la bang Bresenham.
     setAlgorithmColor(color);
     D1(3, baseX, baseY, tipX, tipY);
     D1(3, tipX, tipY, baseX + 3, baseY + 4);
@@ -170,6 +178,7 @@ static void drawCurvedLeaf(int baseX, int baseY, int tipX, int tipY, int color) 
 }
 
 static void drawLeafCluster(int x, int y) {
+    // Cum la quanh cay: gom nhieu la cong fractal Dragon D1.
     drawCurvedLeaf(x, y, x - 20, y - 12, GREEN);
     drawCurvedLeaf(x, y, x + 20, y - 14, LIGHTGREEN);
     drawCurvedLeaf(x, y + 5, x - 16, y + 12, GREEN);
@@ -178,6 +187,7 @@ static void drawLeafCluster(int x, int y) {
 }
 
 static void drawKochCloud(int x, int y, int length, int color) {
+    // Ve dam may bang fractal Koch K dang turtle.
     setAlgorithmColor(color);
     setFractalStart(x, y);
     K(3, (float)length, 0);
@@ -188,6 +198,7 @@ static void drawKochCloud(int x, int y, int length, int color) {
 }
 
 static void drawBackground() {
+    // Ve nen thanh pho zombie: mat trang, sao, may Koch, nha do nat, xe, cay fractal va la.
     drawFilledRect(20, 58, 780, 510, BLACK, BLACK);
     drawFilledCircle(705, 105, 34, RED, RED);
     drawTwinklingStars();
@@ -217,6 +228,7 @@ static void drawBackground() {
 }
 
 static void drawStartZombieIcon(int x, int y) {
+    // Ve icon dau zombie o man hinh menu bang tron Midpoint va duong Bresenham.
     drawFilledCircle(x, y, 24, GREEN, LIGHTGREEN);
     drawFilledCircle(x - 9, y - 5, 4, BLACK, RED);
     drawFilledCircle(x + 9, y - 5, 4, BLACK, RED);
@@ -226,18 +238,21 @@ static void drawStartZombieIcon(int x, int y) {
 }
 
 static void drawDashedHorizontal(int x1, int y, int x2, int color) {
+    // Ve vien dut net ngang cua bang menu bang nhieu doan Bresenham.
     for(int x = x1; x <= x2; x += 16) {
         drawLineBresenham(x, y, x + 8, y, color);
     }
 }
 
 static void drawDashedVertical(int x, int y1, int y2, int color) {
+    // Ve vien dut net doc cua bang menu bang nhieu doan Bresenham.
     for(int y = y1; y <= y2; y += 16) {
         drawLineBresenham(x, y, x, y + 8, color);
     }
 }
 
 static void drawMenuButton(int left, int top, int right, int bottom, char text[], int active) {
+    // Ve nut menu: vien nut bang Bresenham, chu bang outtextxy.
     int borderColor = active ? LIGHTGREEN : LIGHTGRAY;
     int textColor = active ? LIGHTGREEN : WHITE;
 
@@ -251,6 +266,7 @@ static void drawMenuButton(int left, int top, int right, int bottom, char text[]
 }
 
 void drawStartScreen() {
+    // Ve man hinh bat dau: nen, mat trang, sao, may Koch, cay fractal, icon zombie va cac nut.
     setbkcolor(BLACK);
     cleardevice();
 
@@ -316,6 +332,7 @@ int getStartMenuAction(int mouseX, int mouseY) {
 }
 
 void drawSettingsScreen(int zombieSpeedMode) {
+    // Ve man hinh cai dat: dung lai nen fractal va cac nut chon toc do zombie.
     char title[] = "SETTINGS";
     char back[] = "[ BACK ]";
     char speedText[] = "Zombie speed";
@@ -352,6 +369,7 @@ void drawSettingsScreen(int zombieSpeedMode) {
 }
 
 void drawSettingsSpeedButtons(int zombieSpeedMode) {
+    // Ve cum nut toc do SLOW/NORMAL/FAST bang hinh chu nhat va Bresenham.
     char slow[] = "[ SLOW ]";
     char normal[] = "[ NORMAL ]";
     char fast[] = "[ FAST ]";
@@ -371,6 +389,7 @@ int getSettingsAction(int mouseX, int mouseY) {
 }
 
 void drawGameOverScreen(int score, int zombiesKilled) {
+    // Ve man hinh thua: nen fractal, bang diem, nut choi lai va ve menu.
     char title[] = "GAME OVER";
     char scoreText[40];
     char killText[40];
@@ -435,6 +454,7 @@ int getGameOverAction(int mouseX, int mouseY) {
 static void transformPoint(int valueX, int valueY, int centerX, int centerY,
                            int pivotX, int pivotY, double scale, double angle,
                            int shakeX, int *outX, int *outY) {
+    // Bien doi 2D cho zombie: co gian quanh tam, quay quanh pivot, cong them rung ngang.
     double scaledX = centerX + (valueX - centerX) * scale;
     double scaledY = centerY + (valueY - centerY) * scale;
     double cosA = cos(angle);
@@ -447,6 +467,7 @@ static void transformPoint(int valueX, int valueY, int centerX, int centerY,
 static void drawTransformedLine(int x1, int y1, int x2, int y2, int centerX, int centerY,
                                 int pivotX, int pivotY, double scale, double angle,
                                 int shakeX, int color) {
+    // Ve doan thang sau bien doi 2D, net cuoi cung van ve bang Bresenham.
     int tx1, ty1, tx2, ty2;
 
     transformPoint(x1, y1, centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &tx1, &ty1);
@@ -457,6 +478,7 @@ static void drawTransformedLine(int x1, int y1, int x2, int y2, int centerX, int
 static void drawTransformedCircle(int x, int y, int r, int centerX, int centerY,
                                   int pivotX, int pivotY, double scale, double angle,
                                   int shakeX, int borderColor, int fillColor) {
+    // Ve hinh tron sau bien doi 2D, dung cho dau, mat, ban tay zombie.
     int scaledR = (int)(r * scale);
     int tx, ty;
 
@@ -468,6 +490,7 @@ static void drawTransformedCircle(int x, int y, int r, int centerX, int centerY,
 static void drawTransformedRect(int left, int top, int right, int bottom, int centerX, int centerY,
                                 int pivotX, int pivotY, double scale, double angle,
                                 int shakeX, int borderColor, int fillColor) {
+    // Bien doi hinh chu nhat thanh da giac roi to mau; dung cho than, co va giay zombie.
     int rectX[] = {left, right, right, left};
     int rectY[] = {top, top, bottom, bottom};
     int seedX = (left + right) / 2;
@@ -487,6 +510,7 @@ static void drawTransformedPolygon(const int x[], const int y[], int n, int seed
                                    int centerX, int centerY, int pivotX, int pivotY,
                                    double scale, double angle, int shakeX,
                                    int borderColor, int fillColor) {
+    // Bien doi da giac roi to mau; dung cho ao zombie va cac chi tiet nghieng.
     int tx[12];
     int ty[12];
     int transformedSeedX;
@@ -505,6 +529,7 @@ static void drawTransformedPolygon(const int x[], const int y[], int n, int seed
 
 static void drawZombiePose(int x, int groundY, double scale, int shakeX, double angle,
                            double walkPhase, int eyePulse) {
+    // Ve mot tu the zombie hoan chinh: tay/chan Bresenham, than da giac, dau/mat tron.
     int bodyTop = groundY - 62;
     int bodyBottom = groundY - 19;
     int headY = groundY - 80;
@@ -541,10 +566,12 @@ static void drawZombiePose(int x, int groundY, double scale, int shakeX, double 
 }
 
 void drawZombie(int x, int groundY) {
+    // Ve zombie thuong khong hieu ung.
     drawZombiePose(x, groundY, 1.0, 0, 0.0, 0.0, 0);
 }
 
 static void drawHitZombie(int x, int groundY, int effectFrame, double walkPhase, int eyePulse) {
+    // Ve zombie bi ban: ap dung rung ngang va co gian nhe.
     int shakeX = (effectFrame % 2 == 0) ? 3 : -3;
     double scale = (effectFrame % 4 < 2) ? 1.08 : 0.96;
 
@@ -552,6 +579,7 @@ static void drawHitZombie(int x, int groundY, int effectFrame, double walkPhase,
 }
 
 static void drawBossZombie(int x, int groundY, int effectFrame, double walkPhase, int eyePulse) {
+    // Ve boss zombie: phong to bang scale, them mat sang va thanh ngang tren dau.
     int shakeX = 0;
     double scale = 1.28;
 
@@ -570,6 +598,7 @@ static void drawBossZombie(int x, int groundY, int effectFrame, double walkPhase
 }
 
 static void drawFallingZombie(int x, int groundY, int effectFrame) {
+    // Ve zombie nga chet: ap dung phep quay 2D tang dan theo frame.
     const int totalFrames = 14;
     double progress = (double)(totalFrames - effectFrame + 1) / totalFrames;
     double angle = -1.35 * progress;
@@ -579,6 +608,7 @@ static void drawFallingZombie(int x, int groundY, int effectFrame) {
 }
 
 static void drawFallingBossZombie(int x, int groundY, int effectFrame) {
+    // Ve boss nga chet: vua phong to vua quay theo frame.
     const int totalFrames = 14;
     double progress = (double)(totalFrames - effectFrame + 1) / totalFrames;
     double angle = -1.35 * progress;
@@ -588,6 +618,7 @@ static void drawFallingBossZombie(int x, int groundY, int effectFrame) {
 }
 
 static void drawZombieHealthBar(int x, int groundY, int hp) {
+    // Ve thanh mau zombie thuong bang cac hinh chu nhat to mau.
     int left = x - 24;
     int top = groundY - 122;
     int width = hp * 16;
@@ -606,6 +637,7 @@ static void drawZombieHealthBar(int x, int groundY, int hp) {
 }
 
 static void drawBossHealthBar(int x, int groundY, int hp) {
+    // Ve thanh mau boss rong hon bang cac hinh chu nhat to mau.
     int left = x - 42;
     int top = groundY - 150;
     int width;
@@ -624,6 +656,7 @@ static void drawBossHealthBar(int x, int groundY, int hp) {
 }
 
 static void drawWaveOverlay(int currentWave, int waveIntroFrames) {
+    // Ve chu thong bao wave bang outtextxy.
     char waveText[24];
 
     if(waveIntroFrames <= 0) return;
@@ -641,6 +674,7 @@ static void drawWaveOverlay(int currentWave, int waveIntroFrames) {
 }
 
 static void drawHudValues(int hp, int score, int kill, int minute, int second, int currentWave) {
+    // Ve HUD: thanh HP, wave, diem, so kill va thoi gian bang hinh chu nhat/outtextxy.
     int hpWidth;
     char hpText[12];
     char waveText[16];
@@ -685,6 +719,7 @@ static void drawHudValues(int hp, int score, int kill, int minute, int second, i
 }
 
 static void drawGameFrame(int hp, int score, int kill, int minute, int second, int currentWave) {
+    // Ve khung giao dien trong tran: vien khung, nut BACK, thong tin vu khi va HUD.
     drawFilledRect(0, 0, 799, 599, BLACK, BLACK);
 
     drawFilledRect(12, 10, 787, 50, LIGHTGRAY, DARKGRAY);
@@ -727,6 +762,7 @@ int getGameScreenAction(int mouseX, int mouseY) {
 }
 
 static void drawMuzzleFlash(int x, int y) {
+    // Ve lua dau nong sung: tron Midpoint va cac tia Bresenham.
     drawFilledCircle(x, y, 10, YELLOW, YELLOW);
     drawFilledCircle(x + 9, y, 6, LIGHTRED, LIGHTRED);
     drawLineBresenham(x, y, x + 28, y, YELLOW);
@@ -762,6 +798,7 @@ static void restoreArea(int left, int top, void *buffer) {
 }
 
 static void drawStraightBullet(int startX, int y, int endX) {
+    // Ve duong dan thang: cac cham tron va duong Bresenham.
     int x;
 
     for(x = startX; x <= endX; x += 30) {
@@ -771,6 +808,7 @@ static void drawStraightBullet(int startX, int y, int endX) {
 }
 
 static void rotatePoint(int x, int y, int centerX, int centerY, double angle, int *outX, int *outY) {
+    // Quay mot diem quanh tam; dung cho vien dan quay.
     double cosA = cos(angle);
     double sinA = sin(angle);
 
@@ -779,6 +817,7 @@ static void rotatePoint(int x, int y, int centerX, int centerY, double angle, in
 }
 
 static void drawRotatingBullet(int startX, int y, int endX, double angle) {
+    // Ve vien dan quay: truc dan bang Bresenham, canh dan quay bang rotatePoint.
     drawLineBresenham(startX, y, endX, y, YELLOW);
 
     for(int x = startX; x <= endX; x += 36) {
@@ -796,6 +835,7 @@ static void drawRotatingBullet(int startX, int y, int endX, double angle) {
 }
 
 static void drawImpactSparks(int x, int y) {
+    // Ve tia lua khi dan trung zombie bang nhieu duong Bresenham.
     drawLineBresenham(x, y, x + 22, y, YELLOW);
     drawLineBresenham(x, y, x - 18, y, YELLOW);
     drawLineBresenham(x, y, x, y - 20, YELLOW);
@@ -806,6 +846,7 @@ static void drawImpactSparks(int x, int y) {
 }
 
 static void drawExplosion(int x, int y) {
+    // Ve vung no tai diem trung dan bang tron dong tam va tia Bresenham.
     drawFilledCircle(x, y, 18, RED, RED);
     drawFilledCircle(x, y, 12, LIGHTRED, LIGHTRED);
     drawFilledCircle(x, y, 6, YELLOW, YELLOW);
@@ -823,11 +864,13 @@ static int pseudoRandomRange(int seed, int minValue, int maxValue) {
 }
 
 static void drawLightningSegment(int x1, int y1, int x2, int y2, int color) {
+    // Ve mot doan set day bang hai duong Bresenham song song.
     drawLineBresenham(x1, y1, x2, y2, color);
     drawLineBresenham(x1 + 1, y1, x2 + 1, y2, color);
 }
 
 static void drawLightningBolt(int startX) {
+    // Ve tia set nen troi bang cac doan Bresenham gap khuc.
     int x1 = startX;
     int y1 = 60;
     int x2 = startX - 18;
@@ -857,6 +900,7 @@ void drawShootEffect(int targetX, int targetY) {
 }
 
 void drawShootEffectAt(int playerX, int zombieX) {
+    // Ve hieu ung ban: lua nong sung, duong dan quay, tia trung dan va no.
     int muzzleX = playerX + 74;
     int muzzleY = 416;
     int hitX = zombieX - 30;
@@ -935,6 +979,7 @@ void drawZombieSceneManyWithWaveEffects(int playerX, int playerGroundY, int zomb
                                         int zombieHitEffect[], int zombieDeathEffect[],
                                         int playerHp, int score, int kill, int elapsedSeconds,
                                         int currentWave, int waveIntroFrames) {
+    // Ve toan bo man choi: nen, khung HUD, player, zombie, boss, thanh mau va wave.
     static int gamePage = 0;
     static void *worldScene = NULL;
     static int worldSceneReady = 0;

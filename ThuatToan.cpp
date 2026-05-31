@@ -18,6 +18,7 @@ static void swapInt(int &a, int &b) {
 }
 
 static void plotCircleSymmetry(int x0, int y0, int x, int y) {
+    // Ve 8 diem doi xung cua duong tron Midpoint quanh tam (x0, y0).
     putpixel(x0 + x, y0 + y, c);
     putpixel(x0 - x, y0 + y, c);
     putpixel(x0 + x, y0 - y, c);
@@ -29,10 +30,12 @@ static void plotCircleSymmetry(int x0, int y0, int x, int y) {
 }
 
 static void drawFractalLine(int x1, int y1, int x2, int y2) {
+    // Moi canh fractal deu ve bang duong thang Bresenham.
     drawLineBresenham(x1, y1, x2, y2, c);
 }
 
 static void drawFractalLineRel(int dx, int dy) {
+    // Ve mot doan fractal theo toa do tuong doi kieu turtle.
     int nextX = fractalX + dx;
     int nextY = fractalY + dy;
     drawFractalLine(fractalX, fractalY, nextX, nextY);
@@ -41,6 +44,7 @@ static void drawFractalLineRel(int dx, int dy) {
 }
 
 void setAlgorithmColor(int color) {
+    // Dat mau dung chung cho cac ham thuat toan ve diem/duong.
     c = color;
 }
 
@@ -213,6 +217,7 @@ void BLineMinus45(int x1, int y1, int x2, int y2) {
 }
 
 void MPCircle(int x0, int y0, int r) {
+    // Thuat toan Midpoint ve duong tron; dung cho dau, mat, mat trang, banh xe, hieu ung no.
     if(r < 0) return;
 
     int x = 0;
@@ -232,11 +237,13 @@ void MPCircle(int x0, int y0, int r) {
 }
 
 void drawCircleMidpoint(int x0, int y0, int r, int color) {
+    // Ham boc ngoai: chon mau roi ve duong tron bang Midpoint.
     c = color;
     MPCircle(x0, y0, r);
 }
 
 void drawFilledCircle(int x0, int y0, int r, int borderColor, int fillColor) {
+    // Ve hinh tron co to mau: quet cac day ngang, sau do vien bang Midpoint.
     if(r < 0) return;
 
     setcolor(fillColor);
@@ -249,6 +256,7 @@ void drawFilledCircle(int x0, int y0, int r, int borderColor, int fillColor) {
 }
 
 void Fill4(int x, int y, int borderColor, int fillColor) {
+    // To mau mien kin theo 4 huong bang stack/scanline, tranh tran ngan xep khi vung lon.
     struct FillPoint {
         int x;
         int y;
@@ -335,6 +343,7 @@ void Fill4(int x, int y, int borderColor, int fillColor) {
 }
 
 void Fill8(int x, int y, int borderColor, int fillColor) {
+    // To mau de quy 8 huong cho mien kin nho; dung de minh hoa thuat toan to mau de quy.
     if(fillColor == borderColor) return;
     if(x < 0 || y < 0 || x > getmaxx() || y > getmaxy()) return;
 
@@ -353,10 +362,12 @@ void Fill8(int x, int y, int borderColor, int fillColor) {
 }
 
 void floodFill(int x, int y, int fillColor, int borderColor) {
+    // Ham goi to mau mien kin tu diem hat giong (x, y).
     Fill4(x, y, borderColor, fillColor);
 }
 
 void drawFilledRect(int left, int top, int right, int bottom, int borderColor, int fillColor) {
+    // Ve hinh chu nhat co to mau; ap dung cho nen, mat dat, HUD, nut bam, than nguoi, thung go.
     if(left > right) swapInt(left, right);
     if(top > bottom) swapInt(top, bottom);
 
@@ -367,6 +378,7 @@ void drawFilledRect(int left, int top, int right, int bottom, int borderColor, i
 }
 
 void drawPolygonBresenham(const int x[], const int y[], int n, int color) {
+    // Ve bien da giac bang cach noi cac dinh bang Bresenham.
     if(n < 2) return;
 
     for(int i = 0; i < n; i++) {
@@ -376,6 +388,7 @@ void drawPolygonBresenham(const int x[], const int y[], int n, int color) {
 }
 
 void drawFilledPolygon(const int x[], const int y[], int n, int seedX, int seedY, int borderColor, int fillColor) {
+    // To da giac bang scanline, sau do ve vien bang Bresenham; dung cho xe hong, ao zombie, hinh bien doi.
     int minY;
     int maxY;
     int intersections[64];
@@ -432,6 +445,7 @@ void drawFilledPolygon(const int x[], const int y[], int n, int seedX, int seedY
 }
 
 void drawFractalTree(int x, int y, int length, int angleDeg, int depth, int color) {
+    // Ve cay fractal de quy trong nen game: than va nhanh deu la Bresenham.
     if(depth <= 0 || length < 4) return;
 
     double angle = angleDeg * 3.14159265 / 180.0;
@@ -452,12 +466,14 @@ void drawFractalTree(int x, int y, int length, int angleDeg, int depth, int colo
 
 // Dat vi tri bat dau cho cac fractal dang turtle dung linerel.
 void setFractalStart(int x, int y) {
+    // Dat toa do bat dau cho cac fractal dang turtle nhu Koch, C, Dragon.
     fractalX = x;
     fractalY = y;
 }
 
 // Ham D: ve duong rong dang turtle, moi doan cuoi ve bang Bresenham.
 void D(int n, float len, float d, int s) {
+    // Ve duong rong Dragon de quy dang turtle; co the dung lam la/canh cong.
     if(n > 0) {
         d += 45 * s;
         D(n - 1, (float)(len * DRAGON_FACT), d, 1);
@@ -470,6 +486,7 @@ void D(int n, float len, float d, int s) {
 
 // Ham D1: ve duong rong theo 2 diem dau cuoi.
 void D1(int n, int x1, int y1, int x2, int y2) {
+    // Ve duong rong Dragon theo 2 diem; trong game dung de ve la cong.
     if(n > 0) {
         int midX = (x1 + x2 + y1 - y2) / 2;
         int midY = (y1 + y2 + x2 - x1) / 2;
@@ -482,6 +499,7 @@ void D1(int n, int x1, int y1, int x2, int y2) {
 
 // Ham C: ve duong cong C dang turtle, chia nhanh trai phai 45 do.
 void C(int n, float len, float d) {
+    // Ve duong cong C de quy dang turtle.
     if(n > 0) {
         d += 45;
         C(n - 1, (float)(len * DRAGON_FACT), d);
@@ -495,6 +513,7 @@ void C(int n, float len, float d) {
 
 // Ham C: ve duong cong C theo 2 diem dau cuoi.
 void C(int n, int a, int b, int c2, int d2) {
+    // Ve duong cong C de quy theo 2 diem dau cuoi.
     if(n > 0) {
         int midX = (a + b + c2 - d2) / 2;
         int midY = (b + c2 + d2 - a) / 2;
@@ -507,6 +526,7 @@ void C(int n, int a, int b, int c2, int d2) {
 
 // Ham Snow: ve bong tuyet Koch tu tam va ban kinh R.
 void Snow(int n, float x, float y, float R) {
+    // Ve bong tuyet Koch tu tam va ban kinh; la fractal trang tri co the dua vao nen.
     float a, b, c2, d2, u, v;
 
     a = (float)(x - R * KOCH_FACT);
@@ -527,6 +547,7 @@ void Snow(int n, float x, float y, float R) {
 
 // Ham K: ve duong Koch theo 2 diem dau cuoi.
 void K(int n, float a, float b, float c2, float d2) {
+    // Ve duong Koch theo 2 diem; dung de tao canh may/duong gap khuc fractal.
     float u, v;
 
     if(n > 0) {
@@ -543,6 +564,7 @@ void K(int n, float a, float b, float c2, float d2) {
 
 // Ham K: ve duong Koch dang turtle.
 void K(int n, float len, float d) {
+    // Ve duong Koch dang turtle; trong game dung de ve dam may Koch.
     if(n > 0) {
         K(n - 1, len / 3, d);
         d -= 60;
@@ -558,6 +580,7 @@ void K(int n, float len, float d) {
 
 // Ham K1: bien the duong Koch theo 2 diem dau cuoi.
 void K1(int n, float a, float b, float c2, float d2) {
+    // Bien the Koch theo 2 diem, giu lai de mo rong cac vat the fractal.
     float u, v;
 
     if(n > 0) {
