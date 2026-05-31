@@ -77,6 +77,23 @@ static void waitForFrameEnd(DWORD frameStartTick, int frameMs)
     }
 }
 
+static int readKeyNonBlocking()
+{
+    if(!kbhit()) {
+        return -1;
+    }
+
+    int key = getch();
+    if(key == 0 || key == 224) {
+        if(kbhit()) {
+            getch();
+        }
+        return -1;
+    }
+
+    return key;
+}
+
 static int getZombieSpeedMode(int zombieStep)
 {
     if(zombieStep <= 6) return 0;
@@ -222,8 +239,8 @@ static int handleGameOverScreen(int &playerX, int zombieX[], int zombieHp[], int
             }
         }
 
-        if(kbhit()) {
-            int key = getch();
+        int key = readKeyNonBlocking();
+        if(key != -1) {
             if(key == 13) {
                 resetGameState(playerX, zombieX, zombieHp, showZombieHp, zombieRespawn,
                                zombieMoveCarry, lastFrameTick, playerHp, score, kills, elapsedSeconds, gameStartTick,
@@ -268,10 +285,9 @@ int main()
                 }
                 if(action == 2) {
                     drawHowToPlayScreen();
-                    while(!kbhit() && !ismouseclick(WM_LBUTTONDOWN)) {
+                    while(readKeyNonBlocking() == -1 && !ismouseclick(WM_LBUTTONDOWN)) {
                         waitForFrameEnd(GetTickCount(), 10);
                     }
-                    if(kbhit()) getch();
                     if(ismouseclick(WM_LBUTTONDOWN)) {
                         int tempX, tempY;
                         getmouseclick(WM_LBUTTONDOWN, tempX, tempY);
@@ -298,8 +314,8 @@ int main()
                             }
                         }
 
-                        if(kbhit()) {
-                            int settingsKey = getch();
+                        int settingsKey = readKeyNonBlocking();
+                        if(settingsKey != -1) {
                             if(settingsKey == '0') {
                                 applyZombieSpeedAction(0, zombieStep);
                                 drawSettingsSpeedButtons(getZombieSpeedMode(zombieStep));
@@ -330,8 +346,8 @@ int main()
                 }
             }
 
-            if(kbhit()) {
-                int key = getch();
+            int key = readKeyNonBlocking();
+            if(key != -1) {
                 if(key == 13) startGame = 1;
                 if(key == 27) running = 0;
             }
@@ -507,8 +523,8 @@ int main()
                 }
             }
 
-            if(kbhit()) {
-                int key = getch();
+            int key = readKeyNonBlocking();
+            if(key != -1) {
                 if(key == 27) {
                     break;
                 }

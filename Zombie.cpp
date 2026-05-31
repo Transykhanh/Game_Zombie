@@ -640,9 +640,10 @@ static void drawWaveOverlay(int currentWave, int waveIntroFrames) {
     }
 }
 
-static void drawHudValues(int hp, int score, int kill, int minute, int second) {
+static void drawHudValues(int hp, int score, int kill, int minute, int second, int currentWave) {
     int hpWidth;
     char hpText[12];
+    char waveText[16];
     char scoreText[24];
     char killText[24];
     char timeText[24];
@@ -652,6 +653,7 @@ static void drawHudValues(int hp, int score, int kill, int minute, int second) {
     hpWidth = hp * 148 / 5;
 
     sprintf(hpText, "HP %d/5", hp);
+    sprintf(waveText, "WAVE: %d", currentWave);
     sprintf(scoreText, "SCORE: %d", score);
     sprintf(killText, "KILL: %d", kill);
     sprintf(timeText, "TIME: %02d:%02d", minute, second);
@@ -667,19 +669,22 @@ static void drawHudValues(int hp, int score, int kill, int minute, int second) {
     setcolor(WHITE);
     outtextxy(38, 40, hpText);
 
-    drawFilledRect(245, 24, 410, 40, BLACK, BLACK);
+    drawFilledRect(198, 24, 282, 40, BLACK, BLACK);
+    drawFilledRect(300, 24, 410, 40, BLACK, BLACK);
     drawFilledRect(460, 24, 575, 40, BLACK, BLACK);
     drawFilledRect(610, 24, 715, 40, BLACK, BLACK);
 
+    setcolor(LIGHTCYAN);
+    outtextxy(202, 26, waveText);
     setcolor(LIGHTGREEN);
-    outtextxy(245, 26, scoreText);
+    outtextxy(305, 26, scoreText);
     setcolor(YELLOW);
     outtextxy(460, 26, killText);
     setcolor(LIGHTCYAN);
     outtextxy(610, 26, timeText);
 }
 
-static void drawGameFrame(int hp, int score, int kill, int minute, int second) {
+static void drawGameFrame(int hp, int score, int kill, int minute, int second, int currentWave) {
     drawFilledRect(0, 0, 799, 599, BLACK, BLACK);
 
     drawFilledRect(12, 10, 787, 50, LIGHTGRAY, DARKGRAY);
@@ -713,7 +718,7 @@ static void drawGameFrame(int hp, int score, int kill, int minute, int second) {
     outtextxy(292, 548, ammoValue);
     outtextxy(558, 548, bombValue);
 
-    drawHudValues(hp, score, kill, minute, second);
+    drawHudValues(hp, score, kill, minute, second, currentWave);
 }
 
 int getGameScreenAction(int mouseX, int mouseY) {
@@ -962,7 +967,7 @@ void drawZombieSceneManyWithWaveEffects(int playerX, int playerGroundY, int zomb
         }
     }
 
-    drawGameFrame(playerHp, score, kill, minute, second);
+    drawGameFrame(playerHp, score, kill, minute, second, currentWave);
 
     if(worldSceneReady) {
         putimage(20, 58, worldScene, COPY_PUT);
