@@ -12,6 +12,8 @@ const int PLAYER_HP_MAX = 5;
 const int PLAYER_GROUND_Y = 452;
 const int JUMP_DURATION = 24;
 const int JUMP_HEIGHT = 82;
+const int TARGET_FRAME_MS = 16;
+const int ZOMBIE_DEATH_FALL_FRAMES = 14;
 
 static int initialZombieX[ZOMBIE_COUNT] = {485, 640, 795, 910, 1025};
 static int spawnZombieX[ZOMBIE_COUNT] = {795, 875, 955, 1035, 1115};
@@ -22,6 +24,15 @@ static void drawGameState(int playerX, int playerGroundY, int zombieX[], int zom
     drawZombieSceneManyWithPlayerStats(playerX, playerGroundY, ZOMBIE_COUNT,
                                        zombieX, zombieHp, showZombieHp,
                                        playerHp, score, kill, elapsedSeconds);
+}
+
+static void drawGameStateWithEffects(int playerX, int playerGroundY, int zombieX[], int zombieHp[],
+                                     int showZombieHp[], int zombieHitEffect[], int zombieDeathEffect[],
+                                     int playerHp, int score, int kill, int elapsedSeconds)
+{
+    drawZombieSceneManyWithEffects(playerX, playerGroundY, ZOMBIE_COUNT,
+                                   zombieX, zombieHp, showZombieHp, zombieHitEffect, zombieDeathEffect,
+                                   playerHp, score, kill, elapsedSeconds);
 }
 
 static int getTargetZombie(int playerX, int zombieX[], int zombieHp[])
@@ -44,18 +55,37 @@ static int getElapsedSeconds(DWORD startTick)
     return (int)((GetTickCount() - startTick) / 1000);
 }
 
+static void pumpWindowsMessages()
+{
+    MSG message;
+
+    while(PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&message);
+        DispatchMessageA(&message);
+    }
+}
+
+static void waitForFrameEnd(DWORD frameStartTick, int frameMs)
+{
+    while((int)(GetTickCount() - frameStartTick) < frameMs) {
+        pumpWindowsMessages();
+        Sleep(1);
+    }
+}
+
 static int getZombieSpeedMode(int zombieStep)
 {
-    if(zombieStep <= 1) return 0;
-    if(zombieStep >= 100) return 2;
+    if(zombieStep <= 6) return 0;
+    if(zombieStep >= 30) return 2;
     return 1;
 }
 
 static void applyZombieSpeedAction(int action, int &zombieStep)
 {
-    if(action == 1) zombieStep = 1;
-    if(action == 2) zombieStep = 10;
-    if(action == 3) zombieStep = 100;
+    if(action == 0) zombieStep = 0;
+    if(action == 1) zombieStep = 6;
+    if(action == 2) zombieStep = 18;
+    if(action == 3) zombieStep = 30;
 }
 
 static int getPlayerGroundY(int jumpTick)
@@ -87,6 +117,14 @@ static void resetZombies(int zombieX[], int zombieHp[], int showZombieHp[], int 
         zombieHp[i] = ZOMBIE_HP_MAX;
         showZombieHp[i] = 0;
         zombieRespawn[i] = 0;
+    }
+}
+
+static void resetZombieEffects(int zombieHitEffect[], int zombieDeathEffect[])
+{
+    for(int i = 0; i < ZOMBIE_COUNT; i++) {
+        zombieHitEffect[i] = 0;
+        zombieDeathEffect[i] = 0;
     }
 }
 
@@ -148,7 +186,7 @@ static int handleGameOverScreen(int &playerX, int zombieX[], int zombieHp[], int
             }
         }
 
-        delay(10);
+        waitForFrameEnd(GetTickCount(), 10);
     }
 
     return 1;
@@ -160,12 +198,15 @@ int main()
     startBackgroundMusic();
 
     int running = 1;
-    int zombieStep = 10;
+    int zombieStep = 6;
     while(running) {
         drawStartScreen();
         int startGame = 0;
 
         while(!startGame && running) {
+            DWORD menuFrameStart = GetTickCount();
+            pumpWindowsMessages();
+
             if(ismouseclick(WM_LBUTTONDOWN)) {
                 int mouseX, mouseY;
                 getmouseclick(WM_LBUTTONDOWN, mouseX, mouseY);
@@ -177,7 +218,7 @@ int main()
                 if(action == 2) {
                     drawHowToPlayScreen();
                     while(!kbhit() && !ismouseclick(WM_LBUTTONDOWN)) {
-                        delay(10);
+                        waitForFrameEnd(GetTickCount(), 10);
                     }
                     if(kbhit()) getch();
                     if(ismouseclick(WM_LBUTTONDOWN)) {
@@ -190,6 +231,9 @@ int main()
                     int inSettings = 1;
                     drawSettingsScreen(getZombieSpeedMode(zombieStep));
                     while(inSettings && running) {
+                        DWORD settingsFrameStart = GetTickCount();
+                        pumpWindowsMessages();
+
                         if(ismouseclick(WM_LBUTTONDOWN)) {
                             int settingsX, settingsY;
                             getmouseclick(WM_LBUTTONDOWN, settingsX, settingsY);
@@ -205,6 +249,10 @@ int main()
 
                         if(kbhit()) {
                             int settingsKey = getch();
+                            if(settingsKey == '0') {
+                                applyZombieSpeedAction(0, zombieStep);
+                                drawSettingsSpeedButtons(getZombieSpeedMode(zombieStep));
+                            }
                             if(settingsKey == '1') {
                                 applyZombieSpeedAction(1, zombieStep);
                                 drawSettingsSpeedButtons(getZombieSpeedMode(zombieStep));
@@ -222,7 +270,7 @@ int main()
                             }
                         }
 
-                        delay(10);
+                        waitForFrameEnd(settingsFrameStart, 10);
                     }
                     drawStartScreen();
                 }
@@ -236,6 +284,8 @@ int main()
                 if(key == 13) startGame = 1;
                 if(key == 27) running = 0;
             }
+
+            waitForFrameEnd(menuFrameStart, 10);
         }
 
         if(!running) break;
@@ -244,6 +294,8 @@ int main()
         int zombieX[ZOMBIE_COUNT];
         int zombieHp[ZOMBIE_COUNT];
         int showZombieHp[ZOMBIE_COUNT];
+        int zombieHitEffect[ZOMBIE_COUNT];
+        int zombieDeathEffect[ZOMBIE_COUNT];
         int zombieRespawn[ZOMBIE_COUNT];
         double zombieMoveCarry;
         DWORD lastFrameTick;
@@ -257,15 +309,17 @@ int main()
         resetGameState(playerX, zombieX, zombieHp, showZombieHp, zombieRespawn,
                        zombieMoveCarry, lastFrameTick, playerHp, score, kills, elapsedSeconds, gameStartTick,
                        jumpTick);
-        drawGameState(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                      playerHp, score, kills, elapsedSeconds);
+        resetZombieEffects(zombieHitEffect, zombieDeathEffect);
+        drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
+                                 zombieHitEffect, zombieDeathEffect, playerHp, score, kills, elapsedSeconds);
 
         int returnToMenu = 0;
         while(running) {
+            DWORD frameStartTick = GetTickCount();
             int needRedraw = 0;
             int gameOver = 0;
 
-            delay(20);
+            pumpWindowsMessages();
             DWORD nowTick = GetTickCount();
             DWORD frameDelta = nowTick - lastFrameTick;
             lastFrameTick = nowTick;
@@ -285,6 +339,20 @@ int main()
                 needRedraw = 1;
             }
 
+            for(int i = 0; i < ZOMBIE_COUNT; i++) {
+                if(zombieHitEffect[i] > 0) {
+                    zombieHitEffect[i]--;
+                    needRedraw = 1;
+                }
+                if(zombieDeathEffect[i] > 0) {
+                    zombieDeathEffect[i]--;
+                    if(zombieDeathEffect[i] <= 0) {
+                        spawnZombieFromRight(i, zombieX, zombieHp, showZombieHp, zombieRespawn);
+                    }
+                    needRedraw = 1;
+                }
+            }
+
             zombieMoveCarry += (double)zombieStep * (double)frameDelta / 100.0;
             int zombiePixelsToMove = (int)zombieMoveCarry;
             if(zombiePixelsToMove > 0) {
@@ -292,9 +360,10 @@ int main()
                 for(int i = 0; i < ZOMBIE_COUNT; i++) {
                     if(zombieHp[i] > 0) zombieX[i] -= zombiePixelsToMove;
 
-                    if(zombieHp[i] <= 0 && zombieRespawn[i] > 0) zombieRespawn[i]--;
-                    if(zombieHp[i] <= 0 && zombieRespawn[i] <= 0) {
+                    if(zombieHp[i] <= 0 && zombieDeathEffect[i] <= 0 && zombieRespawn[i] > 0) zombieRespawn[i]--;
+                    if(zombieHp[i] <= 0 && zombieDeathEffect[i] <= 0 && zombieRespawn[i] <= 0) {
                         spawnZombieFromRight(i, zombieX, zombieHp, showZombieHp, zombieRespawn);
+                        zombieHitEffect[i] = 0;
                     }
                 }
 
@@ -305,6 +374,8 @@ int main()
                 if(zombieReachedPlayer(zombieX[i], zombieHp[i])) {
                     playerHp--;
                     spawnZombieFromRight(i, zombieX, zombieHp, showZombieHp, zombieRespawn);
+                    zombieHitEffect[i] = 0;
+                    zombieDeathEffect[i] = 0;
                     needRedraw = 1;
                 }
             }
@@ -315,18 +386,18 @@ int main()
                 needRedraw = 1;
             }
 
-            if(needRedraw) {
-                drawGameState(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                              playerHp, score, kills, elapsedSeconds);
-            }
-
             if(gameOver) {
+                if(needRedraw) {
+                    drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
+                                             zombieHitEffect, zombieDeathEffect, playerHp, score, kills, elapsedSeconds);
+                }
                 playZombieDeathSound();
                 returnToMenu = handleGameOverScreen(playerX, zombieX, zombieHp, showZombieHp,
                                                     zombieRespawn, zombieMoveCarry, lastFrameTick, playerHp,
                                                     score, kills, elapsedSeconds, gameStartTick,
                                                     running, jumpTick);
                 if(returnToMenu) break;
+                resetZombieEffects(zombieHitEffect, zombieDeathEffect);
                 continue;
             }
 
@@ -338,24 +409,24 @@ int main()
                 } else {
                     int target = getTargetZombie(playerX, zombieX, zombieHp);
 
-                    if(target < 0) {
-                        continue;
+                    if(target >= 0) {
+                        playGunSound();
+                        drawShootEffectAt(playerX, zombieX[target]);
+
+                        zombieHp[target]--;
+                        showZombieHp[target] = 1;
+                        zombieHitEffect[target] = 8;
+                        if(zombieHp[target] <= 0) {
+                            zombieHitEffect[target] = 0;
+                            zombieDeathEffect[target] = ZOMBIE_DEATH_FALL_FRAMES;
+                            showZombieHp[target] = 0;
+                            kills++;
+                            score += 100;
+                            playZombieDeathSound();
+                        }
+
+                        needRedraw = 1;
                     }
-
-                    playGunSound();
-                    drawShootEffectAt(playerX, zombieX[target]);
-
-                    zombieHp[target]--;
-                    showZombieHp[target] = 1;
-                    if(zombieHp[target] <= 0) {
-                        spawnZombieFromRight(target, zombieX, zombieHp, showZombieHp, zombieRespawn);
-                        kills++;
-                        score += 100;
-                        playZombieDeathSound();
-                    }
-
-                    drawGameState(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                  playerHp, score, kills, elapsedSeconds);
                 }
             }
 
@@ -371,28 +442,49 @@ int main()
                                                     score, kills, elapsedSeconds, gameStartTick,
                                                     running, jumpTick);
                     if(returnToMenu) break;
+                    resetZombieEffects(zombieHitEffect, zombieDeathEffect);
                 }
                 if(key == 'i' || key == 'I') {
                     playPickupSound();
                 }
+                if(key == '0') {
+                    applyZombieSpeedAction(0, zombieStep);
+                    zombieMoveCarry = 0.0;
+                }
+                if(key == '1') {
+                    applyZombieSpeedAction(1, zombieStep);
+                    zombieMoveCarry = 0.0;
+                }
+                if(key == '2') {
+                    applyZombieSpeedAction(2, zombieStep);
+                    zombieMoveCarry = 0.0;
+                }
+                if(key == '3') {
+                    applyZombieSpeedAction(3, zombieStep);
+                    zombieMoveCarry = 0.0;
+                }
                 if(key == 'a' || key == 'A') {
                     playerX -= 12;
                     if(playerX < 70) playerX = 70;
-                    drawGameState(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                  playerHp, score, kills, elapsedSeconds);
+                    needRedraw = 1;
                 }
                 if(key == 'd' || key == 'D') {
                     playerX += 12;
                     if(playerX > 235) playerX = 235;
-                    drawGameState(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                  playerHp, score, kills, elapsedSeconds);
+                    needRedraw = 1;
                 }
                 if((key == 'w' || key == 'W') && jumpTick == 0) {
                     jumpTick = 1;
-                    drawGameState(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                  playerHp, score, kills, elapsedSeconds);
+                    needRedraw = 1;
                 }
             }
+
+            if(needRedraw) {
+                drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
+                                         zombieHitEffect, zombieDeathEffect, playerHp, score, kills, elapsedSeconds);
+            }
+
+            waitForFrameEnd(frameStartTick, TARGET_FRAME_MS);
         }
     }
 

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 struct StarPoint {
     int x;
@@ -431,34 +432,128 @@ int getGameOverAction(int mouseX, int mouseY) {
     return 0;
 }
 
-void drawZombie(int x, int groundY) {
+static void transformPoint(int valueX, int valueY, int centerX, int centerY,
+                           int pivotX, int pivotY, double scale, double angle,
+                           int shakeX, int *outX, int *outY) {
+    double scaledX = centerX + (valueX - centerX) * scale;
+    double scaledY = centerY + (valueY - centerY) * scale;
+    double cosA = cos(angle);
+    double sinA = sin(angle);
+
+    *outX = pivotX + (int)((scaledX - pivotX) * cosA - (scaledY - pivotY) * sinA) + shakeX;
+    *outY = pivotY + (int)((scaledX - pivotX) * sinA + (scaledY - pivotY) * cosA);
+}
+
+static void drawTransformedLine(int x1, int y1, int x2, int y2, int centerX, int centerY,
+                                int pivotX, int pivotY, double scale, double angle,
+                                int shakeX, int color) {
+    int tx1, ty1, tx2, ty2;
+
+    transformPoint(x1, y1, centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &tx1, &ty1);
+    transformPoint(x2, y2, centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &tx2, &ty2);
+    drawLineBresenham(tx1, ty1, tx2, ty2, color);
+}
+
+static void drawTransformedCircle(int x, int y, int r, int centerX, int centerY,
+                                  int pivotX, int pivotY, double scale, double angle,
+                                  int shakeX, int borderColor, int fillColor) {
+    int scaledR = (int)(r * scale);
+    int tx, ty;
+
+    if(scaledR < 1) scaledR = 1;
+    transformPoint(x, y, centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &tx, &ty);
+    drawFilledCircle(tx, ty, scaledR, borderColor, fillColor);
+}
+
+static void drawTransformedRect(int left, int top, int right, int bottom, int centerX, int centerY,
+                                int pivotX, int pivotY, double scale, double angle,
+                                int shakeX, int borderColor, int fillColor) {
+    int rectX[] = {left, right, right, left};
+    int rectY[] = {top, top, bottom, bottom};
+    int seedX = (left + right) / 2;
+    int seedY = (top + bottom) / 2;
+    int tx[4];
+    int ty[4];
+
+    for(int i = 0; i < 4; i++) {
+        transformPoint(rectX[i], rectY[i], centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &tx[i], &ty[i]);
+    }
+
+    transformPoint(seedX, seedY, centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &seedX, &seedY);
+    drawFilledPolygon(tx, ty, 4, seedX, seedY, borderColor, fillColor);
+}
+
+static void drawTransformedPolygon(const int x[], const int y[], int n, int seedX, int seedY,
+                                   int centerX, int centerY, int pivotX, int pivotY,
+                                   double scale, double angle, int shakeX,
+                                   int borderColor, int fillColor) {
+    int tx[12];
+    int ty[12];
+    int transformedSeedX;
+    int transformedSeedY;
+
+    if(n > 12) return;
+
+    for(int i = 0; i < n; i++) {
+        transformPoint(x[i], y[i], centerX, centerY, pivotX, pivotY, scale, angle, shakeX, &tx[i], &ty[i]);
+    }
+
+    transformPoint(seedX, seedY, centerX, centerY, pivotX, pivotY, scale, angle, shakeX,
+                   &transformedSeedX, &transformedSeedY);
+    drawFilledPolygon(tx, ty, n, transformedSeedX, transformedSeedY, borderColor, fillColor);
+}
+
+static void drawZombiePose(int x, int groundY, double scale, int shakeX, double angle) {
     int bodyTop = groundY - 62;
     int bodyBottom = groundY - 19;
     int headY = groundY - 80;
+    int centerY = groundY - 45;
+    int pivotX = x - 22;
+    int pivotY = groundY;
 
-    drawLineBresenham(x - 14, bodyTop + 12, x - 43, bodyTop - 4, LIGHTGREEN);
-    drawLineBresenham(x + 14, bodyTop + 12, x + 42, bodyTop - 9, LIGHTGREEN);
-    drawFilledCircle(x - 48, bodyTop - 7, 5, GREEN, LIGHTGREEN);
-    drawFilledCircle(x + 48, bodyTop - 11, 5, GREEN, LIGHTGREEN);
+    drawTransformedLine(x - 14, bodyTop + 12, x - 43, bodyTop - 4, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedLine(x + 14, bodyTop + 12, x + 42, bodyTop - 9, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedCircle(x - 48, bodyTop - 7, 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
+    drawTransformedCircle(x + 48, bodyTop - 11, 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
 
-    drawFilledRect(x - 14, bodyTop, x + 14, bodyBottom, GREEN, LIGHTGREEN);
-    drawFilledRect(x - 9, bodyTop - 8, x + 9, bodyTop, GREEN, LIGHTGREEN);
+    drawTransformedRect(x - 14, bodyTop, x + 14, bodyBottom, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
+    drawTransformedRect(x - 9, bodyTop - 8, x + 9, bodyTop, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
 
     int shirtX[] = {x - 14, x + 14, x + 10, x - 10};
     int shirtY[] = {bodyTop + 22, bodyTop + 22, bodyBottom, bodyBottom};
-    drawFilledPolygon(shirtX, shirtY, 4, x, bodyTop + 28, WHITE, BLUE);
+    drawTransformedPolygon(shirtX, shirtY, 4, x, bodyTop + 28, x, centerY, pivotX, pivotY, scale, angle, shakeX, WHITE, BLUE);
 
-    drawFilledCircle(x, headY, 17, GREEN, LIGHTGREEN);
-    drawFilledCircle(x - 7, headY - 4, 3, BLACK, RED);
-    drawFilledCircle(x + 7, headY - 4, 3, BLACK, RED);
-    drawLineBresenham(x - 9, headY + 8, x + 9, headY + 8, BLACK);
-    drawLineBresenham(x - 5, headY + 8, x - 5, headY + 13, WHITE);
-    drawLineBresenham(x + 5, headY + 8, x + 5, headY + 13, WHITE);
+    drawTransformedCircle(x, headY, 17, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
+    drawTransformedCircle(x - 7, headY - 4, 3, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, RED);
+    drawTransformedCircle(x + 7, headY - 4, 3, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, RED);
+    drawTransformedLine(x - 9, headY + 8, x + 9, headY + 8, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK);
+    drawTransformedLine(x - 5, headY + 8, x - 5, headY + 13, x, centerY, pivotX, pivotY, scale, angle, shakeX, WHITE);
+    drawTransformedLine(x + 5, headY + 8, x + 5, headY + 13, x, centerY, pivotX, pivotY, scale, angle, shakeX, WHITE);
 
-    drawLineBresenham(x - 10, bodyBottom, x - 22, groundY, LIGHTGREEN);
-    drawLineBresenham(x + 10, bodyBottom, x + 21, groundY, LIGHTGREEN);
-    drawFilledRect(x - 30, groundY, x - 14, groundY + 5, BLACK, BROWN);
-    drawFilledRect(x + 14, groundY, x + 31, groundY + 5, BLACK, BROWN);
+    drawTransformedLine(x - 10, bodyBottom, x - 22, groundY, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedLine(x + 10, bodyBottom, x + 21, groundY, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedRect(x - 30, groundY, x - 14, groundY + 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, BROWN);
+    drawTransformedRect(x + 14, groundY, x + 31, groundY + 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, BROWN);
+}
+
+void drawZombie(int x, int groundY) {
+    drawZombiePose(x, groundY, 1.0, 0, 0.0);
+}
+
+static void drawHitZombie(int x, int groundY, int effectFrame) {
+    int shakeX = (effectFrame % 2 == 0) ? 3 : -3;
+    double scale = (effectFrame % 4 < 2) ? 1.08 : 0.96;
+
+    drawZombiePose(x, groundY, scale, shakeX, 0.0);
+}
+
+static void drawFallingZombie(int x, int groundY, int effectFrame) {
+    const int totalFrames = 14;
+    double progress = (double)(totalFrames - effectFrame + 1) / totalFrames;
+    double angle = -1.35 * progress;
+
+    if(progress > 1.0) progress = 1.0;
+    drawZombiePose(x, groundY, 1.0, 0, angle);
 }
 
 static void drawZombieHealthBar(int x, int groundY, int hp) {
@@ -604,6 +699,31 @@ static void drawStraightBullet(int startX, int y, int endX) {
     drawLineBresenham(startX, y, endX, y, YELLOW);
 }
 
+static void rotatePoint(int x, int y, int centerX, int centerY, double angle, int *outX, int *outY) {
+    double cosA = cos(angle);
+    double sinA = sin(angle);
+
+    *outX = centerX + (int)((x - centerX) * cosA - (y - centerY) * sinA);
+    *outY = centerY + (int)((x - centerX) * sinA + (y - centerY) * cosA);
+}
+
+static void drawRotatingBullet(int startX, int y, int endX, double angle) {
+    drawLineBresenham(startX, y, endX, y, YELLOW);
+
+    for(int x = startX; x <= endX; x += 36) {
+        int ax, ay, bx, by, cx, cy, dx, dy;
+
+        rotatePoint(x - 8, y, x, y, angle, &ax, &ay);
+        rotatePoint(x + 8, y, x, y, angle, &bx, &by);
+        rotatePoint(x, y - 4, x, y, angle, &cx, &cy);
+        rotatePoint(x, y + 4, x, y, angle, &dx, &dy);
+
+        drawLineBresenham(ax, ay, bx, by, WHITE);
+        drawLineBresenham(cx, cy, dx, dy, LIGHTRED);
+        drawFilledCircle(x, y, 2, WHITE, YELLOW);
+    }
+}
+
 static void drawImpactSparks(int x, int y) {
     drawLineBresenham(x, y, x + 22, y, YELLOW);
     drawLineBresenham(x, y, x - 18, y, YELLOW);
@@ -677,7 +797,7 @@ void drawShootEffectAt(int playerX, int zombieX) {
     void *effectArea = saveArea(effectLeft, effectTop, effectRight, effectBottom);
 
     drawMuzzleFlash(muzzleX, muzzleY);
-    drawStraightBullet(muzzleX + 20, muzzleY, hitX);
+    drawRotatingBullet(muzzleX + 20, muzzleY, hitX, 0.65);
     drawImpactSparks(hitX, hitY);
     drawExplosion(hitX, hitY);
 
@@ -725,6 +845,14 @@ void drawZombieSceneManyWithStats(int playerX, int zombieCount,
 void drawZombieSceneManyWithPlayerStats(int playerX, int playerGroundY, int zombieCount,
                                         int zombieX[], int zombieHp[], int showZombieHp[],
                                         int playerHp, int score, int kill, int elapsedSeconds) {
+    drawZombieSceneManyWithEffects(playerX, playerGroundY, zombieCount, zombieX, zombieHp, showZombieHp,
+                                   NULL, NULL, playerHp, score, kill, elapsedSeconds);
+}
+
+void drawZombieSceneManyWithEffects(int playerX, int playerGroundY, int zombieCount,
+                                    int zombieX[], int zombieHp[], int showZombieHp[],
+                                    int zombieHitEffect[], int zombieDeathEffect[],
+                                    int playerHp, int score, int kill, int elapsedSeconds) {
     static int gamePage = 0;
     static void *worldScene = NULL;
     static int worldSceneReady = 0;
@@ -777,9 +905,15 @@ void drawZombieSceneManyWithPlayerStats(int playerX, int playerGroundY, int zomb
 
     drawPlayer(playerX, playerGroundY);
     for(i = 0; i < zombieCount; i++) {
-        if(zombieHp[i] > 0 && zombieX[i] > 230 && zombieX[i] < 780) {
-            drawZombie(zombieX[i], 452);
-            if(showZombieHp[i]) drawZombieHealthBar(zombieX[i], 452, zombieHp[i]);
+        if(zombieX[i] > 230 && zombieX[i] < 780) {
+            if(zombieHp[i] <= 0 && zombieDeathEffect != NULL && zombieDeathEffect[i] > 0) {
+                drawFallingZombie(zombieX[i], 452, zombieDeathEffect[i]);
+            } else if(zombieHp[i] > 0 && zombieHitEffect != NULL && zombieHitEffect[i] > 0) {
+                drawHitZombie(zombieX[i], 452, zombieHitEffect[i]);
+            } else if(zombieHp[i] > 0) {
+                drawZombie(zombieX[i], 452);
+            }
+            if(zombieHp[i] > 0 && showZombieHp[i]) drawZombieHealthBar(zombieX[i], 452, zombieHp[i]);
         }
     }
 

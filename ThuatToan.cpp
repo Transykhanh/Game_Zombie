@@ -239,26 +239,99 @@ void drawCircleMidpoint(int x0, int y0, int r, int color) {
 void drawFilledCircle(int x0, int y0, int r, int borderColor, int fillColor) {
     if(r < 0) return;
 
+    setcolor(fillColor);
     for(int y = -r; y <= r; y++) {
         int xLimit = (int)sqrt((double)(r * r - y * y));
-        drawLineBresenham(x0 - xLimit, y0 + y, x0 + xLimit, y0 + y, fillColor);
+        line(x0 - xLimit, y0 + y, x0 + xLimit, y0 + y);
     }
 
     drawCircleMidpoint(x0, y0, r, borderColor);
 }
 
 void Fill4(int x, int y, int borderColor, int fillColor) {
+    struct FillPoint {
+        int x;
+        int y;
+    };
+
+    int maxX = getmaxx();
+    int maxY = getmaxy();
+    int targetColor;
+    int stackLimit;
+    int stackTop = 0;
+    FillPoint *stack;
+
     if(fillColor == borderColor) return;
-    if(x < 0 || y < 0 || x > getmaxx() || y > getmaxy()) return;
+    if(x < 0 || y < 0 || x > maxX || y > maxY) return;
 
-    int current = getpixel(x, y);
-    if(current == borderColor || current == fillColor) return;
+    targetColor = getpixel(x, y);
+    if(targetColor == borderColor || targetColor == fillColor) return;
 
-    putpixel(x, y, fillColor);
-    Fill4(x + 1, y, borderColor, fillColor);
-    Fill4(x - 1, y, borderColor, fillColor);
-    Fill4(x, y + 1, borderColor, fillColor);
-    Fill4(x, y - 1, borderColor, fillColor);
+    stackLimit = (maxX + 1) * (maxY + 1);
+    stack = (FillPoint*)malloc(sizeof(FillPoint) * stackLimit);
+    if(stack == NULL) return;
+
+    stack[stackTop].x = x;
+    stack[stackTop].y = y;
+    stackTop++;
+
+    setcolor(fillColor);
+    while(stackTop > 0) {
+        FillPoint point = stack[--stackTop];
+        int left;
+        int right;
+
+        if(point.x < 0 || point.y < 0 || point.x > maxX || point.y > maxY) continue;
+        if(getpixel(point.x, point.y) != targetColor) continue;
+
+        left = point.x;
+        while(left >= 0 && getpixel(left, point.y) == targetColor) {
+            left--;
+        }
+        left++;
+
+        right = point.x;
+        while(right <= maxX && getpixel(right, point.y) == targetColor) {
+            right++;
+        }
+        right--;
+
+        line(left, point.y, right, point.y);
+
+        if(point.y > 0) {
+            int inSpan = 0;
+            for(int scanX = left; scanX <= right; scanX++) {
+                if(getpixel(scanX, point.y - 1) == targetColor) {
+                    if(!inSpan && stackTop < stackLimit) {
+                        stack[stackTop].x = scanX;
+                        stack[stackTop].y = point.y - 1;
+                        stackTop++;
+                    }
+                    inSpan = 1;
+                } else {
+                    inSpan = 0;
+                }
+            }
+        }
+
+        if(point.y < maxY) {
+            int inSpan = 0;
+            for(int scanX = left; scanX <= right; scanX++) {
+                if(getpixel(scanX, point.y + 1) == targetColor) {
+                    if(!inSpan && stackTop < stackLimit) {
+                        stack[stackTop].x = scanX;
+                        stack[stackTop].y = point.y + 1;
+                        stackTop++;
+                    }
+                    inSpan = 1;
+                } else {
+                    inSpan = 0;
+                }
+            }
+        }
+    }
+
+    free(stack);
 }
 
 void Fill8(int x, int y, int borderColor, int fillColor) {
@@ -287,14 +360,10 @@ void drawFilledRect(int left, int top, int right, int bottom, int borderColor, i
     if(left > right) swapInt(left, right);
     if(top > bottom) swapInt(top, bottom);
 
-    drawLineBresenham(left, top, right, top, borderColor);
-    drawLineBresenham(right, top, right, bottom, borderColor);
-    drawLineBresenham(right, bottom, left, bottom, borderColor);
-    drawLineBresenham(left, bottom, left, top, borderColor);
-
-    for(int y = top + 1; y < bottom; y++) {
-        drawLineBresenham(left + 1, y, right - 1, y, fillColor);
-    }
+    setfillstyle(SOLID_FILL, fillColor);
+    bar(left, top, right, bottom);
+    setcolor(borderColor);
+    rectangle(left, top, right, bottom);
 }
 
 void drawPolygonBresenham(const int x[], const int y[], int n, int color) {
@@ -307,8 +376,59 @@ void drawPolygonBresenham(const int x[], const int y[], int n, int color) {
 }
 
 void drawFilledPolygon(const int x[], const int y[], int n, int seedX, int seedY, int borderColor, int fillColor) {
+    int minY;
+    int maxY;
+    int intersections[64];
+
+    (void)seedX;
+    (void)seedY;
+
+    if(n < 3) {
+        drawPolygonBresenham(x, y, n, borderColor);
+        return;
+    }
+
+    minY = y[0];
+    maxY = y[0];
+    for(int i = 1; i < n; i++) {
+        if(y[i] < minY) minY = y[i];
+        if(y[i] > maxY) maxY = y[i];
+    }
+
+    setcolor(fillColor);
+    for(int scanY = minY; scanY <= maxY; scanY++) {
+        int count = 0;
+
+        for(int i = 0; i < n; i++) {
+            int next = (i + 1) % n;
+            int y1 = y[i];
+            int y2 = y[next];
+            int x1 = x[i];
+            int x2 = x[next];
+
+            if(y1 == y2) continue;
+            if((scanY >= y1 && scanY < y2) || (scanY >= y2 && scanY < y1)) {
+                if(count < 64) {
+                    intersections[count] = x1 + (scanY - y1) * (x2 - x1) / (y2 - y1);
+                    count++;
+                }
+            }
+        }
+
+        for(int i = 0; i < count - 1; i++) {
+            for(int j = i + 1; j < count; j++) {
+                if(intersections[i] > intersections[j]) {
+                    swapInt(intersections[i], intersections[j]);
+                }
+            }
+        }
+
+        for(int i = 0; i + 1 < count; i += 2) {
+            line(intersections[i], scanY, intersections[i + 1], scanY);
+        }
+    }
+
     drawPolygonBresenham(x, y, n, borderColor);
-    Fill4(seedX, seedY, borderColor, fillColor);
 }
 
 void drawFractalTree(int x, int y, int length, int angleDeg, int depth, int color) {

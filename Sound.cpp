@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
 
@@ -18,6 +19,15 @@ static char backgroundFile[MAX_PATH] = "";
 static char gunFile[MAX_PATH] = "";
 static char deathFile[MAX_PATH] = "";
 static char pickupFile[MAX_PATH] = "";
+
+struct SoundBuffer {
+    char *data;
+    DWORD size;
+};
+
+static SoundBuffer gunBuffer = {NULL, 0};
+static SoundBuffer deathBuffer = {NULL, 0};
+static SoundBuffer pickupBuffer = {NULL, 0};
 
 static void writeU16(FILE *file, unsigned short value)
 {
@@ -143,10 +153,12 @@ static void buildSoundPath(char *target, const char *fileName)
 static void createSoundFiles()
 {
     SoundNote backgroundNotes[] = {
-        {261.63, 420}, {329.63, 420}, {392.00, 520}, {329.63, 420},
-        {293.66, 420}, {349.23, 520}, {392.00, 620}, {0.00, 180},
-        {329.63, 420}, {392.00, 420}, {440.00, 520}, {392.00, 420},
-        {349.23, 420}, {329.63, 520}, {293.66, 700}, {0.00, 220}
+        {220.00, 520}, {0.00, 120}, {261.63, 520}, {0.00, 120},
+        {293.66, 680}, {261.63, 520}, {0.00, 180},
+        {196.00, 560}, {0.00, 120}, {246.94, 560}, {0.00, 120},
+        {261.63, 720}, {246.94, 560}, {0.00, 220},
+        {174.61, 620}, {0.00, 140}, {220.00, 620}, {246.94, 760},
+        {220.00, 620}, {196.00, 820}, {0.00, 260}
     };
     SoundNote gunNotes[] = {
         {1250.00, 24}, {760.00, 28}, {0.00, 18}, {410.00, 35}
@@ -162,13 +174,13 @@ static void createSoundFiles()
         return;
     }
 
-    buildSoundPath(backgroundFile, "sound_background.wav");
+    buildSoundPath(backgroundFile, "sound_background_light.wav");
     buildSoundPath(gunFile, "sound_gun.wav");
     buildSoundPath(deathFile, "sound_death.wav");
     buildSoundPath(pickupFile, "sound_pickup.wav");
 
     if(!fileExists(backgroundFile)) {
-        createMelodyWav(backgroundFile, backgroundNotes, sizeof(backgroundNotes) / sizeof(backgroundNotes[0]), 0.20);
+        createMelodyWav(backgroundFile, backgroundNotes, sizeof(backgroundNotes) / sizeof(backgroundNotes[0]), 0.10);
     }
     if(!fileExists(gunFile)) {
         createMelodyWav(gunFile, gunNotes, sizeof(gunNotes) / sizeof(gunNotes[0]), 0.55);
@@ -183,6 +195,71 @@ static void createSoundFiles()
     soundFilesReady = 1;
 }
 
+static void freeSoundBuffer(SoundBuffer *buffer)
+{
+    if(buffer->data != NULL) {
+        free(buffer->data);
+        buffer->data = NULL;
+        buffer->size = 0;
+    }
+}
+
+static void loadSoundBuffer(const char *fileName, SoundBuffer *buffer)
+{
+    HANDLE file;
+    DWORD fileSize;
+    DWORD bytesRead = 0;
+
+    if(buffer->data != NULL) {
+        return;
+    }
+
+    file = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(file == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    fileSize = GetFileSize(file, NULL);
+    if(fileSize == INVALID_FILE_SIZE || fileSize == 0) {
+        CloseHandle(file);
+        return;
+    }
+
+    buffer->data = (char*)malloc(fileSize);
+    if(buffer->data == NULL) {
+        CloseHandle(file);
+        return;
+    }
+
+    if(!ReadFile(file, buffer->data, fileSize, &bytesRead, NULL) || bytesRead != fileSize) {
+        freeSoundBuffer(buffer);
+    } else {
+        buffer->size = fileSize;
+    }
+
+    CloseHandle(file);
+}
+
+static void loadSoundBuffers()
+{
+    createSoundFiles();
+    loadSoundBuffer(gunFile, &gunBuffer);
+    loadSoundBuffer(deathFile, &deathBuffer);
+    loadSoundBuffer(pickupFile, &pickupBuffer);
+}
+
+static void playBufferedSound(const char *fileName, SoundBuffer *buffer)
+{
+    createSoundFiles();
+    loadSoundBuffer(fileName, buffer);
+
+    if(buffer->data != NULL) {
+        PlaySoundA(buffer->data, NULL, SND_MEMORY | SND_ASYNC | SND_NODEFAULT);
+    } else {
+        PlaySoundA(fileName, NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+    }
+}
+
 void startBackgroundMusic()
 {
     char command[512];
@@ -190,6 +267,7 @@ void startBackgroundMusic()
     MCIERROR playError;
 
     createSoundFiles();
+    loadSoundBuffers();
 
     mciSendStringA("close bgm", NULL, 0, NULL);
     wsprintfA(command, "open \"%s\" type waveaudio alias bgm", backgroundFile);
@@ -207,37 +285,22 @@ void stopBackgroundMusic()
     mciSendStringA("stop bgm", NULL, 0, NULL);
     mciSendStringA("close bgm", NULL, 0, NULL);
     PlaySoundA(NULL, NULL, 0);
+    freeSoundBuffer(&gunBuffer);
+    freeSoundBuffer(&deathBuffer);
+    freeSoundBuffer(&pickupBuffer);
 }
 
 void playGunSound()
 {
-    char command[512];
-
-    createSoundFiles();
-    mciSendStringA("close gunSound", NULL, 0, NULL);
-    wsprintfA(command, "open \"%s\" type waveaudio alias gunSound", gunFile);
-    mciSendStringA(command, NULL, 0, NULL);
-    mciSendStringA("play gunSound from 0", NULL, 0, NULL);
+    playBufferedSound(gunFile, &gunBuffer);
 }
 
 void playZombieDeathSound()
 {
-    char command[512];
-
-    createSoundFiles();
-    mciSendStringA("close deathSound", NULL, 0, NULL);
-    wsprintfA(command, "open \"%s\" type waveaudio alias deathSound", deathFile);
-    mciSendStringA(command, NULL, 0, NULL);
-    mciSendStringA("play deathSound from 0", NULL, 0, NULL);
+    playBufferedSound(deathFile, &deathBuffer);
 }
 
 void playPickupSound()
 {
-    char command[512];
-
-    createSoundFiles();
-    mciSendStringA("close pickupSound", NULL, 0, NULL);
-    wsprintfA(command, "open \"%s\" type waveaudio alias pickupSound", pickupFile);
-    mciSendStringA(command, NULL, 0, NULL);
-    mciSendStringA("play pickupSound from 0", NULL, 0, NULL);
+    playBufferedSound(pickupFile, &pickupBuffer);
 }

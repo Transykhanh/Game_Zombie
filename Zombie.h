@@ -16,6 +16,10 @@ void drawZombieSceneManyWithStats(int playerX, int zombieCount,
 void drawZombieSceneManyWithPlayerStats(int playerX, int playerGroundY, int zombieCount,
                                         int zombieX[], int zombieHp[], int showZombieHp[],
                                         int playerHp, int score, int kill, int elapsedSeconds);
+void drawZombieSceneManyWithEffects(int playerX, int playerGroundY, int zombieCount,
+                                    int zombieX[], int zombieHp[], int showZombieHp[],
+                                    int zombieHitEffect[], int zombieDeathEffect[],
+                                    int playerHp, int score, int kill, int elapsedSeconds);
 void drawStartScreen();
 void drawSettingsScreen(int zombieSpeedMode);
 void drawSettingsSpeedButtons(int zombieSpeedMode);
