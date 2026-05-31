@@ -20,6 +20,11 @@ void drawZombieSceneManyWithEffects(int playerX, int playerGroundY, int zombieCo
                                     int zombieX[], int zombieHp[], int showZombieHp[],
                                     int zombieHitEffect[], int zombieDeathEffect[],
                                     int playerHp, int score, int kill, int elapsedSeconds);
+void drawZombieSceneManyWithWaveEffects(int playerX, int playerGroundY, int zombieCount,
+                                        int zombieX[], int zombieHp[], int showZombieHp[],
+                                        int zombieHitEffect[], int zombieDeathEffect[],
+                                        int playerHp, int score, int kill, int elapsedSeconds,
+                                        int currentWave, int waveIntroFrames);
 void drawStartScreen();
 void drawSettingsScreen(int zombieSpeedMode);
 void drawSettingsSpeedButtons(int zombieSpeedMode);

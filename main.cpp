@@ -8,12 +8,14 @@
 
 const int ZOMBIE_COUNT = 5;
 const int ZOMBIE_HP_MAX = 3;
+const int BOSS_HP_MAX = 9;
 const int PLAYER_HP_MAX = 5;
 const int PLAYER_GROUND_Y = 452;
 const int JUMP_DURATION = 24;
 const int JUMP_HEIGHT = 82;
 const int TARGET_FRAME_MS = 16;
 const int ZOMBIE_DEATH_FALL_FRAMES = 14;
+const int WAVE_INTRO_FRAMES = 120;
 
 static int initialZombieX[ZOMBIE_COUNT] = {485, 640, 795, 910, 1025};
 static int spawnZombieX[ZOMBIE_COUNT] = {795, 875, 955, 1035, 1115};
@@ -26,21 +28,23 @@ static void drawGameState(int playerX, int playerGroundY, int zombieX[], int zom
                                        playerHp, score, kill, elapsedSeconds);
 }
 
-static void drawGameStateWithEffects(int playerX, int playerGroundY, int zombieX[], int zombieHp[],
+static void drawGameStateWithEffects(int playerX, int playerGroundY, int activeZombieCount,
+                                     int zombieX[], int zombieHp[],
                                      int showZombieHp[], int zombieHitEffect[], int zombieDeathEffect[],
-                                     int playerHp, int score, int kill, int elapsedSeconds)
+                                     int playerHp, int score, int kill, int elapsedSeconds,
+                                     int currentWave, int waveIntroFrames)
 {
-    drawZombieSceneManyWithEffects(playerX, playerGroundY, ZOMBIE_COUNT,
-                                   zombieX, zombieHp, showZombieHp, zombieHitEffect, zombieDeathEffect,
-                                   playerHp, score, kill, elapsedSeconds);
+    drawZombieSceneManyWithWaveEffects(playerX, playerGroundY, activeZombieCount,
+                                       zombieX, zombieHp, showZombieHp, zombieHitEffect, zombieDeathEffect,
+                                       playerHp, score, kill, elapsedSeconds, currentWave, waveIntroFrames);
 }
 
-static int getTargetZombie(int playerX, int zombieX[], int zombieHp[])
+static int getTargetZombie(int playerX, int activeZombieCount, int zombieX[], int zombieHp[])
 {
     int target = -1;
     int targetX = 10000;
 
-    for(int i = 0; i < ZOMBIE_COUNT; i++) {
+    for(int i = 0; i < activeZombieCount; i++) {
         if(zombieHp[i] > 0 && zombieX[i] > playerX && zombieX[i] < targetX && zombieX[i] < 780) {
             target = i;
             targetX = zombieX[i];
@@ -88,6 +92,34 @@ static void applyZombieSpeedAction(int action, int &zombieStep)
     if(action == 3) zombieStep = 30;
 }
 
+static int getWaveForKills(int kills)
+{
+    if(kills >= 12) return 3;
+    if(kills >= 5) return 2;
+    return 1;
+}
+
+static int getWaveZombieCount(int wave)
+{
+    if(wave <= 1) return 3;
+    if(wave == 2) return 4;
+    return ZOMBIE_COUNT;
+}
+
+static int getWaveMoveStep(int baseStep, int wave)
+{
+    if(baseStep <= 0) return 0;
+    return baseStep + (wave - 1) * 4;
+}
+
+static int getZombieMaxHpForWave(int index, int activeZombieCount, int wave)
+{
+    if(wave >= 3 && index == activeZombieCount - 1) {
+        return BOSS_HP_MAX;
+    }
+    return ZOMBIE_HP_MAX;
+}
+
 static int getPlayerGroundY(int jumpTick)
 {
     if(jumpTick <= 0) return PLAYER_GROUND_Y;
@@ -96,11 +128,11 @@ static int getPlayerGroundY(int jumpTick)
     return PLAYER_GROUND_Y - offset;
 }
 
-static void spawnZombieFromRight(int index, int zombieX[], int zombieHp[],
-                                 int showZombieHp[], int zombieRespawn[])
+static void spawnZombieFromRight(int index, int activeZombieCount, int currentWave,
+                                 int zombieX[], int zombieHp[], int showZombieHp[], int zombieRespawn[])
 {
     zombieX[index] = spawnZombieX[index];
-    zombieHp[index] = ZOMBIE_HP_MAX;
+    zombieHp[index] = getZombieMaxHpForWave(index, activeZombieCount, currentWave);
     showZombieHp[index] = 0;
     zombieRespawn[index] = 0;
 }
@@ -117,6 +149,25 @@ static void resetZombies(int zombieX[], int zombieHp[], int showZombieHp[], int 
         zombieHp[i] = ZOMBIE_HP_MAX;
         showZombieHp[i] = 0;
         zombieRespawn[i] = 0;
+    }
+}
+
+static void setupWaveZombies(int activeZombieCount, int currentWave, int zombieX[], int zombieHp[],
+                             int showZombieHp[], int zombieRespawn[], int zombieHitEffect[],
+                             int zombieDeathEffect[])
+{
+    for(int i = 0; i < activeZombieCount; i++) {
+        int maxHp = getZombieMaxHpForWave(i, activeZombieCount, currentWave);
+
+        if(zombieHp[i] <= 0 && zombieDeathEffect[i] <= 0) {
+            zombieHp[i] = maxHp;
+            zombieX[i] = spawnZombieX[i];
+            showZombieHp[i] = 0;
+            zombieRespawn[i] = 0;
+            zombieHitEffect[i] = 0;
+        } else if(zombieHp[i] > 0 && zombieHp[i] < maxHp) {
+            zombieHp[i] = maxHp;
+        }
     }
 }
 
@@ -305,13 +356,19 @@ int main()
         int elapsedSeconds;
         int jumpTick;
         DWORD gameStartTick;
+        int currentWave = 1;
+        int activeZombieCount = getWaveZombieCount(currentWave);
+        int waveIntroFrames = WAVE_INTRO_FRAMES;
 
         resetGameState(playerX, zombieX, zombieHp, showZombieHp, zombieRespawn,
                        zombieMoveCarry, lastFrameTick, playerHp, score, kills, elapsedSeconds, gameStartTick,
                        jumpTick);
         resetZombieEffects(zombieHitEffect, zombieDeathEffect);
-        drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                 zombieHitEffect, zombieDeathEffect, playerHp, score, kills, elapsedSeconds);
+        setupWaveZombies(activeZombieCount, currentWave, zombieX, zombieHp, showZombieHp,
+                         zombieRespawn, zombieHitEffect, zombieDeathEffect);
+        drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), activeZombieCount,
+                                 zombieX, zombieHp, showZombieHp, zombieHitEffect, zombieDeathEffect,
+                                 playerHp, score, kills, elapsedSeconds, currentWave, waveIntroFrames);
 
         int returnToMenu = 0;
         while(running) {
@@ -339,6 +396,11 @@ int main()
                 needRedraw = 1;
             }
 
+            if(waveIntroFrames > 0) {
+                waveIntroFrames--;
+                needRedraw = 1;
+            }
+
             for(int i = 0; i < ZOMBIE_COUNT; i++) {
                 if(zombieHitEffect[i] > 0) {
                     zombieHitEffect[i]--;
@@ -347,22 +409,23 @@ int main()
                 if(zombieDeathEffect[i] > 0) {
                     zombieDeathEffect[i]--;
                     if(zombieDeathEffect[i] <= 0) {
-                        spawnZombieFromRight(i, zombieX, zombieHp, showZombieHp, zombieRespawn);
+                        spawnZombieFromRight(i, activeZombieCount, currentWave, zombieX, zombieHp, showZombieHp, zombieRespawn);
                     }
                     needRedraw = 1;
                 }
             }
 
-            zombieMoveCarry += (double)zombieStep * (double)frameDelta / 100.0;
+            int effectiveZombieStep = getWaveMoveStep(zombieStep, currentWave);
+            zombieMoveCarry += (double)effectiveZombieStep * (double)frameDelta / 100.0;
             int zombiePixelsToMove = (int)zombieMoveCarry;
             if(zombiePixelsToMove > 0) {
                 zombieMoveCarry -= zombiePixelsToMove;
-                for(int i = 0; i < ZOMBIE_COUNT; i++) {
+                for(int i = 0; i < activeZombieCount; i++) {
                     if(zombieHp[i] > 0) zombieX[i] -= zombiePixelsToMove;
 
                     if(zombieHp[i] <= 0 && zombieDeathEffect[i] <= 0 && zombieRespawn[i] > 0) zombieRespawn[i]--;
                     if(zombieHp[i] <= 0 && zombieDeathEffect[i] <= 0 && zombieRespawn[i] <= 0) {
-                        spawnZombieFromRight(i, zombieX, zombieHp, showZombieHp, zombieRespawn);
+                        spawnZombieFromRight(i, activeZombieCount, currentWave, zombieX, zombieHp, showZombieHp, zombieRespawn);
                         zombieHitEffect[i] = 0;
                     }
                 }
@@ -370,10 +433,10 @@ int main()
                 needRedraw = 1;
             }
 
-            for(int i = 0; i < ZOMBIE_COUNT; i++) {
+            for(int i = 0; i < activeZombieCount; i++) {
                 if(zombieReachedPlayer(zombieX[i], zombieHp[i])) {
                     playerHp--;
-                    spawnZombieFromRight(i, zombieX, zombieHp, showZombieHp, zombieRespawn);
+                    spawnZombieFromRight(i, activeZombieCount, currentWave, zombieX, zombieHp, showZombieHp, zombieRespawn);
                     zombieHitEffect[i] = 0;
                     zombieDeathEffect[i] = 0;
                     needRedraw = 1;
@@ -388,8 +451,10 @@ int main()
 
             if(gameOver) {
                 if(needRedraw) {
-                    drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                             zombieHitEffect, zombieDeathEffect, playerHp, score, kills, elapsedSeconds);
+                    drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), activeZombieCount,
+                                             zombieX, zombieHp, showZombieHp,
+                                             zombieHitEffect, zombieDeathEffect,
+                                             playerHp, score, kills, elapsedSeconds, currentWave, waveIntroFrames);
                 }
                 playZombieDeathSound();
                 returnToMenu = handleGameOverScreen(playerX, zombieX, zombieHp, showZombieHp,
@@ -398,6 +463,9 @@ int main()
                                                     running, jumpTick);
                 if(returnToMenu) break;
                 resetZombieEffects(zombieHitEffect, zombieDeathEffect);
+                currentWave = 1;
+                activeZombieCount = getWaveZombieCount(currentWave);
+                waveIntroFrames = WAVE_INTRO_FRAMES;
                 continue;
             }
 
@@ -407,7 +475,7 @@ int main()
                 if(getGameScreenAction(mouseX, mouseY) == 1) {
                     break;
                 } else {
-                    int target = getTargetZombie(playerX, zombieX, zombieHp);
+                    int target = getTargetZombie(playerX, activeZombieCount, zombieX, zombieHp);
 
                     if(target >= 0) {
                         playGunSound();
@@ -423,6 +491,15 @@ int main()
                             kills++;
                             score += 100;
                             playZombieDeathSound();
+
+                            int nextWave = getWaveForKills(kills);
+                            if(nextWave > currentWave) {
+                                currentWave = nextWave;
+                                activeZombieCount = getWaveZombieCount(currentWave);
+                                waveIntroFrames = WAVE_INTRO_FRAMES;
+                                setupWaveZombies(activeZombieCount, currentWave, zombieX, zombieHp, showZombieHp,
+                                                 zombieRespawn, zombieHitEffect, zombieDeathEffect);
+                            }
                         }
 
                         needRedraw = 1;
@@ -443,6 +520,9 @@ int main()
                                                     running, jumpTick);
                     if(returnToMenu) break;
                     resetZombieEffects(zombieHitEffect, zombieDeathEffect);
+                    currentWave = 1;
+                    activeZombieCount = getWaveZombieCount(currentWave);
+                    waveIntroFrames = WAVE_INTRO_FRAMES;
                 }
                 if(key == 'i' || key == 'I') {
                     playPickupSound();
@@ -480,8 +560,10 @@ int main()
             }
 
             if(needRedraw) {
-                drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), zombieX, zombieHp, showZombieHp,
-                                         zombieHitEffect, zombieDeathEffect, playerHp, score, kills, elapsedSeconds);
+                drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), activeZombieCount,
+                                         zombieX, zombieHp, showZombieHp,
+                                         zombieHitEffect, zombieDeathEffect,
+                                         playerHp, score, kills, elapsedSeconds, currentWave, waveIntroFrames);
             }
 
             waitForFrameEnd(frameStartTick, TARGET_FRAME_MS);

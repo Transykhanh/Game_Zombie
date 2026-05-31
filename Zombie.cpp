@@ -503,18 +503,22 @@ static void drawTransformedPolygon(const int x[], const int y[], int n, int seed
     drawFilledPolygon(tx, ty, n, transformedSeedX, transformedSeedY, borderColor, fillColor);
 }
 
-static void drawZombiePose(int x, int groundY, double scale, int shakeX, double angle) {
+static void drawZombiePose(int x, int groundY, double scale, int shakeX, double angle,
+                           double walkPhase, int eyePulse) {
     int bodyTop = groundY - 62;
     int bodyBottom = groundY - 19;
     int headY = groundY - 80;
     int centerY = groundY - 45;
     int pivotX = x - 22;
     int pivotY = groundY;
+    int armSwing = (int)(sin(walkPhase) * 8.0);
+    int legSwing = (int)(sin(walkPhase + 3.14159265) * 7.0);
+    int eyeColor = eyePulse ? LIGHTRED : RED;
 
-    drawTransformedLine(x - 14, bodyTop + 12, x - 43, bodyTop - 4, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
-    drawTransformedLine(x + 14, bodyTop + 12, x + 42, bodyTop - 9, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
-    drawTransformedCircle(x - 48, bodyTop - 7, 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
-    drawTransformedCircle(x + 48, bodyTop - 11, 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
+    drawTransformedLine(x - 14, bodyTop + 12, x - 43, bodyTop - 4 + armSwing, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedLine(x + 14, bodyTop + 12, x + 42, bodyTop - 9 - armSwing, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedCircle(x - 48, bodyTop - 7 + armSwing, 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
+    drawTransformedCircle(x + 48, bodyTop - 11 - armSwing, 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
 
     drawTransformedRect(x - 14, bodyTop, x + 14, bodyBottom, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
     drawTransformedRect(x - 9, bodyTop - 8, x + 9, bodyTop, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
@@ -524,27 +528,45 @@ static void drawZombiePose(int x, int groundY, double scale, int shakeX, double 
     drawTransformedPolygon(shirtX, shirtY, 4, x, bodyTop + 28, x, centerY, pivotX, pivotY, scale, angle, shakeX, WHITE, BLUE);
 
     drawTransformedCircle(x, headY, 17, x, centerY, pivotX, pivotY, scale, angle, shakeX, GREEN, LIGHTGREEN);
-    drawTransformedCircle(x - 7, headY - 4, 3, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, RED);
-    drawTransformedCircle(x + 7, headY - 4, 3, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, RED);
+    drawTransformedCircle(x - 7, headY - 4, eyePulse ? 4 : 3, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, eyeColor);
+    drawTransformedCircle(x + 7, headY - 4, eyePulse ? 4 : 3, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, eyeColor);
     drawTransformedLine(x - 9, headY + 8, x + 9, headY + 8, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK);
     drawTransformedLine(x - 5, headY + 8, x - 5, headY + 13, x, centerY, pivotX, pivotY, scale, angle, shakeX, WHITE);
     drawTransformedLine(x + 5, headY + 8, x + 5, headY + 13, x, centerY, pivotX, pivotY, scale, angle, shakeX, WHITE);
 
-    drawTransformedLine(x - 10, bodyBottom, x - 22, groundY, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
-    drawTransformedLine(x + 10, bodyBottom, x + 21, groundY, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
-    drawTransformedRect(x - 30, groundY, x - 14, groundY + 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, BROWN);
-    drawTransformedRect(x + 14, groundY, x + 31, groundY + 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, BROWN);
+    drawTransformedLine(x - 10, bodyBottom, x - 22 + legSwing, groundY, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedLine(x + 10, bodyBottom, x + 21 - legSwing, groundY, x, centerY, pivotX, pivotY, scale, angle, shakeX, LIGHTGREEN);
+    drawTransformedRect(x - 30 + legSwing, groundY, x - 14 + legSwing, groundY + 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, BROWN);
+    drawTransformedRect(x + 14 - legSwing, groundY, x + 31 - legSwing, groundY + 5, x, centerY, pivotX, pivotY, scale, angle, shakeX, BLACK, BROWN);
 }
 
 void drawZombie(int x, int groundY) {
-    drawZombiePose(x, groundY, 1.0, 0, 0.0);
+    drawZombiePose(x, groundY, 1.0, 0, 0.0, 0.0, 0);
 }
 
-static void drawHitZombie(int x, int groundY, int effectFrame) {
+static void drawHitZombie(int x, int groundY, int effectFrame, double walkPhase, int eyePulse) {
     int shakeX = (effectFrame % 2 == 0) ? 3 : -3;
     double scale = (effectFrame % 4 < 2) ? 1.08 : 0.96;
 
-    drawZombiePose(x, groundY, scale, shakeX, 0.0);
+    drawZombiePose(x, groundY, scale, shakeX, 0.0, walkPhase, eyePulse);
+}
+
+static void drawBossZombie(int x, int groundY, int effectFrame, double walkPhase, int eyePulse) {
+    int shakeX = 0;
+    double scale = 1.28;
+
+    if(effectFrame > 0) {
+        shakeX = (effectFrame % 2 == 0) ? 4 : -4;
+        scale = (effectFrame % 4 < 2) ? 1.34 : 1.20;
+    }
+
+    drawZombiePose(x, groundY, scale, shakeX, 0.0, walkPhase * 1.25, 1);
+    drawFilledCircle(x + 10 + shakeX, groundY - 108, 6, YELLOW, YELLOW);
+    drawLineBresenham(x - 12 + shakeX, groundY - 108, x + 32 + shakeX, groundY - 108, YELLOW);
+    if(eyePulse) {
+        drawFilledCircle(x - 9 + shakeX, groundY - 102, 5, LIGHTRED, LIGHTRED);
+        drawFilledCircle(x + 9 + shakeX, groundY - 102, 5, LIGHTRED, LIGHTRED);
+    }
 }
 
 static void drawFallingZombie(int x, int groundY, int effectFrame) {
@@ -553,7 +575,16 @@ static void drawFallingZombie(int x, int groundY, int effectFrame) {
     double angle = -1.35 * progress;
 
     if(progress > 1.0) progress = 1.0;
-    drawZombiePose(x, groundY, 1.0, 0, angle);
+    drawZombiePose(x, groundY, 1.0, 0, angle, 0.0, 1);
+}
+
+static void drawFallingBossZombie(int x, int groundY, int effectFrame) {
+    const int totalFrames = 14;
+    double progress = (double)(totalFrames - effectFrame + 1) / totalFrames;
+    double angle = -1.35 * progress;
+
+    if(progress > 1.0) progress = 1.0;
+    drawZombiePose(x, groundY, 1.25, 0, angle, 0.0, 1);
 }
 
 static void drawZombieHealthBar(int x, int groundY, int hp) {
@@ -571,6 +602,41 @@ static void drawZombieHealthBar(int x, int groundY, int hp) {
         if(hp == 2) color = YELLOW;
         if(hp == 1) color = RED;
         drawFilledRect(left, top, left + width, top + 6, color, color);
+    }
+}
+
+static void drawBossHealthBar(int x, int groundY, int hp) {
+    int left = x - 42;
+    int top = groundY - 150;
+    int width;
+
+    if(hp < 0) hp = 0;
+    if(hp > 9) hp = 9;
+    width = hp * 84 / 9;
+
+    drawFilledRect(left - 2, top - 2, left + 88, top + 9, WHITE, BLACK);
+    if(hp > 0) {
+        int color = LIGHTRED;
+        if(hp > 6) color = LIGHTGREEN;
+        if(hp > 3 && hp <= 6) color = YELLOW;
+        drawFilledRect(left, top, left + width, top + 7, color, color);
+    }
+}
+
+static void drawWaveOverlay(int currentWave, int waveIntroFrames) {
+    char waveText[24];
+
+    if(waveIntroFrames <= 0) return;
+
+    sprintf(waveText, "WAVE %d", currentWave);
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 4);
+    setcolor(YELLOW);
+    outtextxy(315, 245, waveText);
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 1);
+    setcolor(LIGHTGRAY);
+    if(currentWave == 3) {
+        char bossText[] = "BOSS INCOMING";
+        outtextxy(342, 292, bossText);
     }
 }
 
@@ -853,16 +919,30 @@ void drawZombieSceneManyWithEffects(int playerX, int playerGroundY, int zombieCo
                                     int zombieX[], int zombieHp[], int showZombieHp[],
                                     int zombieHitEffect[], int zombieDeathEffect[],
                                     int playerHp, int score, int kill, int elapsedSeconds) {
+    drawZombieSceneManyWithWaveEffects(playerX, playerGroundY, zombieCount,
+                                       zombieX, zombieHp, showZombieHp,
+                                       zombieHitEffect, zombieDeathEffect,
+                                       playerHp, score, kill, elapsedSeconds, 1, 0);
+}
+
+void drawZombieSceneManyWithWaveEffects(int playerX, int playerGroundY, int zombieCount,
+                                        int zombieX[], int zombieHp[], int showZombieHp[],
+                                        int zombieHitEffect[], int zombieDeathEffect[],
+                                        int playerHp, int score, int kill, int elapsedSeconds,
+                                        int currentWave, int waveIntroFrames) {
     static int gamePage = 0;
     static void *worldScene = NULL;
     static int worldSceneReady = 0;
     static int lastLightningSlot = 0;
     static int lightningFrames = 0;
     static int lightningX = 400;
+    static int animationFrame = 0;
     int minute = elapsedSeconds / 60;
     int second = elapsedSeconds % 60;
     int lightningSlot = elapsedSeconds / 5;
     int i;
+
+    animationFrame++;
 
     gamePage = 1 - gamePage;
     setactivepage(gamePage);
@@ -905,17 +985,41 @@ void drawZombieSceneManyWithEffects(int playerX, int playerGroundY, int zombieCo
 
     drawPlayer(playerX, playerGroundY);
     for(i = 0; i < zombieCount; i++) {
+        int isBoss = (currentWave >= 3 && i == zombieCount - 1);
+        double walkPhase = animationFrame * 0.22 + i * 0.75;
+        int eyePulse = ((animationFrame + i * 5) / 12) % 2;
+
         if(zombieX[i] > 230 && zombieX[i] < 780) {
             if(zombieHp[i] <= 0 && zombieDeathEffect != NULL && zombieDeathEffect[i] > 0) {
-                drawFallingZombie(zombieX[i], 452, zombieDeathEffect[i]);
+                if(isBoss) {
+                    drawFallingBossZombie(zombieX[i], 452, zombieDeathEffect[i]);
+                } else {
+                    drawFallingZombie(zombieX[i], 452, zombieDeathEffect[i]);
+                }
             } else if(zombieHp[i] > 0 && zombieHitEffect != NULL && zombieHitEffect[i] > 0) {
-                drawHitZombie(zombieX[i], 452, zombieHitEffect[i]);
+                if(isBoss) {
+                    drawBossZombie(zombieX[i], 452, zombieHitEffect[i], walkPhase, eyePulse);
+                } else {
+                    drawHitZombie(zombieX[i], 452, zombieHitEffect[i], walkPhase, eyePulse);
+                }
             } else if(zombieHp[i] > 0) {
-                drawZombie(zombieX[i], 452);
+                if(isBoss) {
+                    drawBossZombie(zombieX[i], 452, 0, walkPhase, eyePulse);
+                } else {
+                    drawZombiePose(zombieX[i], 452, 1.0, 0, 0.0, walkPhase, eyePulse);
+                }
             }
-            if(zombieHp[i] > 0 && showZombieHp[i]) drawZombieHealthBar(zombieX[i], 452, zombieHp[i]);
+            if(zombieHp[i] > 0 && showZombieHp[i]) {
+                if(isBoss) {
+                    drawBossHealthBar(zombieX[i], 452, zombieHp[i]);
+                } else {
+                    drawZombieHealthBar(zombieX[i], 452, zombieHp[i]);
+                }
+            }
         }
     }
+
+    drawWaveOverlay(currentWave, waveIntroFrames);
 
     setvisualpage(gamePage);
     setactivepage(gamePage);
