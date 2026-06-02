@@ -260,6 +260,56 @@ static int handleGameOverScreen(int &playerX, int zombieX[], int zombieHp[], int
     return 1;
 }
 
+static int handlePauseMenu(DWORD &lastFrameTick, DWORD &gameStartTick, int &running)
+{
+    DWORD pauseStartTick = GetTickCount();
+
+    drawPauseMenuScreen();
+
+    while(running) {
+        if(ismouseclick(WM_LBUTTONDOWN)) {
+            int mouseX, mouseY;
+            getmouseclick(WM_LBUTTONDOWN, mouseX, mouseY);
+            int action = getPauseMenuAction(mouseX, mouseY);
+
+            if(action == 1) {
+                gameStartTick += GetTickCount() - pauseStartTick;
+                lastFrameTick = GetTickCount();
+                return 1;
+            }
+            if(action == 2) {
+                lastFrameTick = GetTickCount();
+                return 2;
+            }
+            if(action == 3) {
+                lastFrameTick = GetTickCount();
+                return 3;
+            }
+        }
+
+        int key = readKeyNonBlocking();
+        if(key != -1) {
+            if(key == 27 || key == 13) {
+                gameStartTick += GetTickCount() - pauseStartTick;
+                lastFrameTick = GetTickCount();
+                return 1;
+            }
+            if(key == 'r' || key == 'R') {
+                lastFrameTick = GetTickCount();
+                return 2;
+            }
+            if(key == 'q' || key == 'Q') {
+                lastFrameTick = GetTickCount();
+                return 3;
+            }
+        }
+
+        waitForFrameEnd(GetTickCount(), 10);
+    }
+
+    return 3;
+}
+
 int main()
 {
     initwindow(800, 600);
@@ -526,7 +576,31 @@ int main()
             int key = readKeyNonBlocking();
             if(key != -1) {
                 if(key == 27) {
-                    break;
+                    int pauseAction = handlePauseMenu(lastFrameTick, gameStartTick, running);
+
+                    if(pauseAction == 1) {
+                        needRedraw = 1;
+                    }
+                    if(pauseAction == 2) {
+                        resetGameState(playerX, zombieX, zombieHp, showZombieHp, zombieRespawn,
+                                       zombieMoveCarry, lastFrameTick, playerHp, score, kills,
+                                       elapsedSeconds, gameStartTick, jumpTick);
+                        resetZombieEffects(zombieHitEffect, zombieDeathEffect);
+                        currentWave = 1;
+                        activeZombieCount = getWaveZombieCount(currentWave);
+                        waveIntroFrames = WAVE_INTRO_FRAMES;
+                        setupWaveZombies(activeZombieCount, currentWave, zombieX, zombieHp, showZombieHp,
+                                         zombieRespawn, zombieHitEffect, zombieDeathEffect);
+                        drawGameStateWithEffects(playerX, getPlayerGroundY(jumpTick), activeZombieCount,
+                                                 zombieX, zombieHp, showZombieHp,
+                                                 zombieHitEffect, zombieDeathEffect,
+                                                 playerHp, score, kills, elapsedSeconds, currentWave, waveIntroFrames);
+                        continue;
+                    }
+                    if(pauseAction == 3) {
+                        returnToMenu = 1;
+                        break;
+                    }
                 }
                 if(key == 'g' || key == 'G') {
                     playZombieDeathSound();

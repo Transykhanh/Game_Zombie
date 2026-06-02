@@ -108,6 +108,21 @@ static void drawGround() {
     BLine4(700, 492, 728, 448);
 }
 
+static void drawBuildingCCracks(int left, int top, int right, int bottom, int wallColor) {
+    // Ve vet nut cong C tren tuong nha, giup be mat do nat tu nhien hon.
+    int width = right - left;
+    int height = bottom - top;
+    int crackColor = (wallColor == LIGHTGRAY) ? BLACK : LIGHTGRAY;
+
+    setAlgorithmColor(crackColor);
+    C(3, left + width / 4, top + height / 5, left + width / 4 + 18, top + height / 5 + 46);
+    C(2, right - width / 4, top + height / 3, right - width / 4 - 22, top + height / 3 + 34);
+
+    if(width > 85) {
+        C(3, left + width / 2, bottom - height / 4, left + width / 2 + 28, bottom - height / 4 + 20);
+    }
+}
+
 static void drawBrokenBuilding(int left, int bottom, int width, int height, int color) {
     // Ve toa nha do nat: than nha bang hinh chu nhat, mai vo va cua so bang Bresenham/hinh chu nhat.
     int right = left + width;
@@ -130,6 +145,8 @@ static void drawBrokenBuilding(int left, int bottom, int width, int height, int 
             }
         }
     }
+
+    drawBuildingCCracks(left, top, right, bottom, color);
 }
 
 static void drawFence(int left, int y, int count) {
@@ -448,6 +465,56 @@ void drawGameOverScreen(int score, int zombiesKilled) {
 int getGameOverAction(int mouseX, int mouseY) {
     if(mouseX >= 260 && mouseX <= 540 && mouseY >= 330 && mouseY <= 362) return 1;
     if(mouseX >= 260 && mouseX <= 540 && mouseY >= 372 && mouseY <= 404) return 2;
+    return 0;
+}
+
+void drawPauseMenuScreen() {
+    // Ve man hinh tam dung: giu phong cach menu, co Resume, Restart va Exit.
+    char title[] = "PAUSED";
+    char resume[] = "[ RESUME ]";
+    char restart[] = "[ RESTART ]";
+    char exitText[] = "[ EXIT TO MENU ]";
+    char hint[] = "ESC/ENTER: resume";
+
+    setbkcolor(BLACK);
+    cleardevice();
+
+    drawFilledRect(0, 0, 799, 599, BLACK, BLACK);
+    drawFilledCircle(665, 90, 38, RED, RED);
+    drawFilledCircle(105, 78, 2, WHITE, WHITE);
+    drawFilledCircle(230, 120, 2, LIGHTGRAY, LIGHTGRAY);
+    drawFilledCircle(530, 90, 2, WHITE, WHITE);
+    drawKochCloud(135, 158, 130, LIGHTGRAY);
+    drawKochCloud(455, 145, 110, DARKGRAY);
+    drawFractalTree(80, 520, 80, 90, 6, BROWN);
+    drawFractalTree(720, 520, 70, 100, 5, BROWN);
+    drawLeafCluster(80, 353);
+    drawLeafCluster(720, 370);
+    drawFilledRect(0, 520, 799, 599, LIGHTGRAY, DARKGRAY);
+
+    drawFilledRect(180, 100, 620, 430, LIGHTGRAY, BLACK);
+    drawDashedHorizontal(205, 122, 595, LIGHTGREEN);
+    drawDashedHorizontal(205, 408, 595, LIGHTGREEN);
+    drawDashedVertical(205, 122, 408, LIGHTGREEN);
+    drawDashedVertical(595, 122, 408, LIGHTGREEN);
+
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 4);
+    setcolor(YELLOW);
+    outtextxy(305, 145, title);
+
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 1);
+    drawMenuButton(285, 220, 515, 254, resume, 1);
+    drawMenuButton(285, 270, 515, 304, restart, 0);
+    drawMenuButton(285, 320, 515, 354, exitText, 0);
+
+    setcolor(LIGHTGRAY);
+    outtextxy(318, 382, hint);
+}
+
+int getPauseMenuAction(int mouseX, int mouseY) {
+    if(mouseX >= 285 && mouseX <= 515 && mouseY >= 220 && mouseY <= 254) return 1;
+    if(mouseX >= 285 && mouseX <= 515 && mouseY >= 270 && mouseY <= 304) return 2;
+    if(mouseX >= 285 && mouseX <= 515 && mouseY >= 320 && mouseY <= 354) return 3;
     return 0;
 }
 
